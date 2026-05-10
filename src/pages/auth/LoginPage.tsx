@@ -50,7 +50,11 @@ export const LoginPage = () => {
             animate={{ scale: 1 }}
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-white mb-6 shadow-xl shadow-primary/30"
           >
-            <Bot size={40} />
+          <img 
+            src="/icon.svg" 
+            alt="Ask Hub Logo"
+            className="w-10 h-10" 
+          />
           </motion.div>
           <h1 className="text-3xl font-heading font-bold text-text-primary mb-2">Ask Hub</h1>
           <p className="text-text-secondary">당신의 팀과 함께하는 AI 협업 공간</p>
