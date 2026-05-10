@@ -676,4 +676,4 @@ export const ChatPage = () => {
   );
 };
 
-const navigate = (path: string, options?: any) => window.location.assign(path);
+// const navigate = (path: string, options?: any) => window.location.assign(path);
