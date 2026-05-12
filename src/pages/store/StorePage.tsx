@@ -157,7 +157,7 @@ export const StorePage = () => {
             <div>
               <p className="text-[10px] font-black text-text-muted uppercase tracking-widest leading-none mb-2">현재 보유 포인트</p>
               <p className="text-3xl font-heading font-black text-text-primary tracking-tight">
-                {user?.points.toLocaleString()} <span className="text-lg text-primary ml-1">P</span>
+                {user?.point.toLocaleString()} <span className="text-lg text-primary ml-1">P</span>
               </p>
             </div>
           </motion.div>
@@ -196,7 +196,7 @@ export const StorePage = () => {
       {/* Product Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredProducts.map((product) => {
-          const isAffordable = (user?.points || 0) >= product.price;
+          const isAffordable = (user?.point || 0) >= product.price;
           
           return (
             <motion.div 

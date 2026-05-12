@@ -47,7 +47,7 @@ export const DashboardPage = () => {
           </div>
           <div>
             <p className="text-xs text-text-muted font-bold uppercase tracking-wider leading-none mb-1">내 포인트</p>
-            <p className="text-lg font-heading font-bold text-text-primary">{user?.points.toLocaleString()} P</p>
+            <p className="text-lg font-heading font-bold text-text-primary">{user?.point.toLocaleString()} P</p>
           </div>
         </div>
       </section>
