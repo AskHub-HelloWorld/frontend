@@ -1,35 +1,24 @@
-//유저 정보 저장 페이지 입니다
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { login as loginAPI, logout as logoutAPI } from '../services/authService';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  department: string;
-  company: string;
-  joinedAt: string;
-  points: number;
-  avatar: string | null;
-}
+import type { MyPageData } from '../types/user';
+import { getMyPage } from '../services/userService';
 
 interface AuthContextType {
-  user: User | null;
+  user: MyPageData | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>; 
-  logout: () => Promise<void>;                               
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   isLoading: boolean;
   updatePoints: (amount: number) => void;
-  updateProfile: (updatedData: Partial<User>) => void;
+  updateProfile: (updatedData: Partial<MyPageData>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<MyPageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 앱 시작 시 토큰 있으면 유저 정보 복원
   useEffect(() => {
     const accessToken = localStorage.getItem('accessToken');
     const savedUser = localStorage.getItem('user');
@@ -47,28 +36,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // 1. 백엔드 로그인 API 호출
       const { accessToken, refreshToken } = await loginAPI({ email, password });
-
-      // 2. 토큰 저장
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
 
-      // 3. 유저 정보 가져오기 (백엔드에 /members/me 같은 API 있으면 교체)
-      //    지금은 email만 세팅하고 나머지는 추후 프로필 API 연동 시 채움
-      const partialUser: User = {
-        id: 0,
-        name: '',
-        email,
-        department: '',
-        company: '',
-        joinedAt: '',
-        points: 0,
-        avatar: null,
-      };
-
-      setUser(partialUser);
-      localStorage.setItem('user', JSON.stringify(partialUser));
+      const myPageData = await getMyPage();
+      setUser(myPageData);
+      localStorage.setItem('user', JSON.stringify(myPageData));
     } finally {
       setIsLoading(false);
     }
@@ -76,9 +50,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await logoutAPI(); // 백엔드에 로그아웃 요청
+      await logoutAPI();
     } catch {
-      // 실패해도 클라이언트 토큰은 제거
+      // 실패해도 클라이언트 토큰 제거
     } finally {
       setUser(null);
       localStorage.removeItem('accessToken');
@@ -89,13 +63,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updatePoints = (amount: number) => {
     if (user) {
-      const updatedUser = { ...user, points: user.points + amount };
+      const updatedUser = { ...user, point: user.point + amount };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
-  const updateProfile = (updatedData: Partial<User>) => {
+  const updateProfile = (updatedData: Partial<MyPageData>) => {
     if (user) {
       const updatedUser = { ...user, ...updatedData };
       setUser(updatedUser);
