@@ -1,0 +1,1 @@
+//team type정의
