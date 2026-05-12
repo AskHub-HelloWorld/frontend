@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, User, Building, Mail, Lock, Calendar, Briefcase } from 'lucide-react';
 import { motion } from 'motion/react';
+import { signup } from '../../services/authService';
+import type { Position } from '../../types/auth';
 
 export const RegisterPage = () => {
   const [formData, setFormData] = useState({
     company: '',
     email: '',
     name: '',
-    department: '',
-    joinDate: '',
+    position: '' as Position,  // ← position으로 변경
+    joinedDate: '',             // ← joinedDate로 변경
     password: '',
     confirmPassword: ''
   });
@@ -21,14 +23,48 @@ export const RegisterPage = () => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const [error, setError] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    // 유효성 검사
+    if (!formData.company || !formData.email || !formData.name || 
+        !formData.position || !formData.joinedDate || !formData.password) {
+      setError('모든 항목을 입력해주세요.');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    navigate('/login');
+    try {
+      await signup({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        company: formData.company,
+        position: formData.position,
+        joinedDate: formData.joinedDate, // 이미 'YYYY-MM-DD' 형식
+      });
+      navigate('/login');
+    } catch (err: any) {
+      setError(err.response?.data?.message || '회원가입 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const departments = ['프론트엔드', '백엔드', '디자인', '기획', 'QA', 'DevOps', '인사/총무', '영업'];
+  const positions: { value: Position; label: string }[] = [
+  { value: 'FRONTEND', label: '프론트엔드' },
+  { value: 'BACKEND', label: '백엔드' },
+  { value: 'DESIGNER', label: '디자인' },
+  { value: 'DEVOPS', label: 'DevOps' },
+  { value: 'PM', label: '기획/PM' },
+  ];
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden dot-grid py-12">
@@ -101,12 +137,14 @@ export const RegisterPage = () => {
                 <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                 <select 
                   name="department"
-                  value={formData.department}
+                  value={formData.position}
                   onChange={handleChange}
                   className="w-full input-field pl-9 text-sm h-10 appearance-none"
                 >
                   <option value="">직군 선택</option>
-                  {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                  {positions.map(p => (
+                    <option key={p.value} value={p.value}>{p.label}</option>  // ← 변경
+                  ))}
                 </select>
               </div>
             </div>
@@ -117,9 +155,9 @@ export const RegisterPage = () => {
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input 
-                name="joinDate"
+                name="joinedDate"
                 type="date"
-                value={formData.joinDate}
+                value={formData.joinedDate}
                 onChange={handleChange}
                 className="w-full input-field pl-9 text-sm h-10" 
               />
@@ -161,6 +199,16 @@ export const RegisterPage = () => {
               </div>
             </div>
           </div>
+
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-sm text-danger font-medium"
+            >
+              {error}
+            </motion.p>
+          )}
 
           <button 
             type="submit" 
