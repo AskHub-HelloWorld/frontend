@@ -18,7 +18,7 @@ import {
   Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { mockChatRooms, mockMessages, mockUser, mockAllUsers } from '../../mock/data';
+import { mockChatRooms, mockMessages, mockAllUsers } from '../../mock/data';
 import { useAuth } from '../../context/AuthContext';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -27,22 +27,28 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Mock enhanced rooms with host info
-const initialRooms = mockChatRooms.map((room, idx) => ({
-  ...room,
-  hostId: idx === 0 ? 999 : mockUser.id, // User is host for room 2, 3...
-  participants: [
-    { id: mockUser.id, name: mockUser.name, role: 'member' },
-    { id: 999, name: '이수호 팀장', role: 'member' },
-    { id: 888, name: '정예지 대리', role: 'member' },
-  ].map(p => ({ ...p, role: (idx === 0 && p.id === 999) || (idx !== 0 && p.id === mockUser.id) ? 'host' : 'member' })),
-  files: [
-    { id: 1, name: '프로젝트_명세서.pdf', size: '2.4MB', uploader: '이수호', date: '2025.05.01' },
-    { id: 2, name: '디자인_가이드라인.fig', size: '15MB', uploader: '정예지', date: '2025.05.02' },
-  ]
-}));
-
 export const ChatPage = () => {
+  const { user } = useAuth(); // ← 최상단으로 이동
+
+  // ✅ 컴포넌트 안으로 이동 + email로 교체
+  const initialRooms = mockChatRooms.map((room, idx) => ({
+    ...room,
+    hostEmail: idx === 0 ? 'suho@company.com' : user?.email,
+    participants: [
+      { email: user?.email, name: user?.name, role: 'member' },
+      { email: 'suho@company.com', name: '이수호 팀장', role: 'member' },
+      { email: 'yeji@company.com', name: '정예지 대리', role: 'member' },
+    ].map(p => ({
+      ...p,
+      role: (idx === 0 && p.email === 'suho@company.com') ||
+            (idx !== 0 && p.email === user?.email) ? 'host' : 'member'
+    })),
+    files: [
+      { id: 1, name: '프로젝트_명세서.pdf', size: '2.4MB', uploader: '이수호', date: '2025.05.01' },
+      { id: 2, name: '디자인_가이드라인.fig', size: '15MB', uploader: '정예지', date: '2025.05.02' },
+    ]
+  }));
+
   const [rooms, setRooms] = useState(initialRooms);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -50,7 +56,6 @@ export const ChatPage = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   
-  // New Chat Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newRoomTitle, setNewRoomTitle] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
@@ -59,13 +64,12 @@ export const ChatPage = () => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
   
   const activeRoom = rooms.find(r => r.id === selectedRoomId);
-  const isHost = activeRoom?.hostId === user?.id;
+  const isHost = (activeRoom as any)?.hostEmail === user?.email; // ✅ email로 비교
 
-  // Mock users for invitation
-  const availableUsers = mockAllUsers.filter(u => u.id !== mockUser.id);
+  // mockAllUsers에서 본인 제외 (email 기준)
+  const availableUsers = mockAllUsers.filter(u => u.email !== user?.email);
 
   useEffect(() => {
     if (selectedRoomId && mockMessages[selectedRoomId as keyof typeof mockMessages]) {
@@ -96,7 +100,6 @@ export const ChatPage = () => {
     setInputValue('');
     setIsTyping(true);
 
-    // Fake AI response delay
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     const aiMsg = {
@@ -115,18 +118,24 @@ export const ChatPage = () => {
     if (!newRoomTitle.trim()) return;
 
     const participants = [
-      { id: user?.id, name: user?.name, role: 'host' },
+      { email: user?.email, name: user?.name, role: 'host' },
       ...selectedMembers.map(m => ({ ...m, role: 'member' }))
     ];
 
-    const files = attachedFiles.map(f => ({ ...f, uploader: user?.name, date: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace(/\.$/, '') }));
+    const files = attachedFiles.map(f => ({
+      ...f,
+      uploader: user?.name,
+      date: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace(/\.$/, '')
+    }));
 
     const newRoom = {
       id: `new-${Date.now()}`,
       title: newRoomTitle,
       createdAt: new Date().toISOString().split('T')[0],
-      lastMessage: attachedFiles.length > 0 ? `${attachedFiles[0].name} 외 ${attachedFiles.length}개의 파일이 업로드되었습니다.` : '채팅방이 생성되었습니다.',
-      hostId: user?.id,
+      lastMessage: attachedFiles.length > 0
+        ? `${attachedFiles[0].name} 외 ${attachedFiles.length}개의 파일이 업로드되었습니다.`
+        : '채팅방이 생성되었습니다.',
+      hostEmail: user?.email,
       participants,
       files
     };
@@ -145,8 +154,8 @@ export const ChatPage = () => {
   };
 
   const toggleMemberSelection = (member: any) => {
-    if (selectedMembers.find(m => m.id === member.id)) {
-      setSelectedMembers(selectedMembers.filter(m => m.id !== member.id));
+    if (selectedMembers.find(m => m.email === member.email)) {
+      setSelectedMembers(selectedMembers.filter(m => m.email !== member.email));
     } else {
       setSelectedMembers([...selectedMembers, member]);
     }
@@ -205,7 +214,6 @@ export const ChatPage = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Room Name */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-text-muted uppercase tracking-widest px-1">채팅방 이름</label>
                     <input 
@@ -218,7 +226,6 @@ export const ChatPage = () => {
                     />
                   </div>
 
-                  {/* Initial File Upload */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-text-muted uppercase tracking-widest px-1">초기 파일 업로드 (선택)</label>
                     <div 
@@ -259,7 +266,6 @@ export const ChatPage = () => {
                     )}
                   </div>
 
-                  {/* Invite Members */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between px-1">
                       <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">멤버 초대</label>
@@ -279,48 +285,43 @@ export const ChatPage = () => {
                       {availableUsers
                         .filter(u => u.name.includes(memberSearch) || u.dept.includes(memberSearch))
                         .map(member => {
-                        const isSelected = selectedMembers.find(m => m.id === member.id);
-                        return (
-                          <div 
-                            key={member.id}
-                            onClick={() => toggleMemberSelection(member)}
-                            className={cn(
-                              "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group",
-                              isSelected ? "bg-primary/10 border-primary shadow-sm" : "bg-bg-elevated border-border hover:bg-bg-elevated/80"
-                            )}
-                          >
-                            <div className="flex items-center gap-3">
+                          const isSelected = selectedMembers.find(m => m.email === member.email);
+                          return (
+                            <div 
+                              key={member.email}
+                              onClick={() => toggleMemberSelection(member)}
+                              className={cn(
+                                "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group",
+                                isSelected ? "bg-primary/10 border-primary shadow-sm" : "bg-bg-elevated border-border hover:bg-bg-elevated/80"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={cn(
+                                  "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ring-2 ring-white",
+                                  isSelected ? "bg-primary text-white" : "bg-bg-surface text-text-secondary"
+                                )}>
+                                  {member.name.charAt(0)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[12px] font-bold">{member.name}</p>
+                                  <p className="text-[10px] text-text-muted">{member.dept} • {member.role}</p>
+                                </div>
+                              </div>
                               <div className={cn(
-                                "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ring-2 ring-white",
-                                isSelected ? "bg-primary text-white" : "bg-bg-surface text-text-secondary"
+                                "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                isSelected ? "bg-primary border-primary" : "border-border bg-white"
                               )}>
-                                {member.name.charAt(0)}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-[12px] font-bold">{member.name}</p>
-                                <p className="text-[10px] text-text-muted">{member.dept} • {member.role}</p>
+                                {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                               </div>
                             </div>
-                            <div className={cn(
-                              "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
-                              isSelected ? "bg-primary border-primary" : "border-border bg-white"
-                            )}>
-                              {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-10 flex gap-3">
-                  <button 
-                    onClick={resetModal}
-                    className="flex-1 btn-outline h-12 rounded-2xl text-sm"
-                  >
-                    취소
-                  </button>
+                  <button onClick={resetModal} className="flex-1 btn-outline h-12 rounded-2xl text-sm">취소</button>
                   <button 
                     onClick={handleCreateRoom}
                     disabled={!newRoomTitle.trim()}
@@ -344,12 +345,9 @@ export const ChatPage = () => {
             exit={{ opacity: 0, x: -20 }}
             className="flex-1 flex flex-col"
           >
-            {/* Sidebar: Chat List */}
             <div className="flex-1 flex flex-col">
               <div className="p-6 border-b border-border flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-text-primary">AI 채팅</h2>
-                </div>
+                <h2 className="text-xl font-bold text-text-primary">AI 채팅</h2>
                 <button 
                   onClick={() => setIsModalOpen(true)}
                   className="btn-primary h-10 px-4 text-xs shadow-md shadow-primary/20"
@@ -452,7 +450,6 @@ export const ChatPage = () => {
 
             {/* Middle: Chat Interface */}
             <div className="flex-1 flex flex-col bg-bg-base/30 relative">
-              {/* Chat Header */}
               <div className="h-16 px-4 border-b border-border flex items-center justify-between bg-bg-surface shadow-sm z-20">
                 <div className="flex items-center gap-3">
                   <button 
@@ -462,29 +459,22 @@ export const ChatPage = () => {
                     <ChevronLeft size={20} />
                   </button>
                   <div className="h-8 w-[1px] bg-border mx-1 hidden sm:block" />
-                  <div className="flex items-center gap-2">
-                    <div className="min-w-0">
-                      <h4 className="text-sm font-bold text-text-primary truncate max-w-[120px] sm:max-w-[400px]">
-                        {activeRoom?.title}
-                      </h4>
-                    </div>
-                  </div>
+                  <h4 className="text-sm font-bold text-text-primary truncate max-w-[120px] sm:max-w-[400px]">
+                    {activeRoom?.title}
+                  </h4>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setShowParticipants(!showParticipants)}
-                    className={cn(
-                      "p-2 rounded-lg transition-all flex items-center gap-2",
-                      showParticipants ? "bg-primary/20 text-primary" : "text-text-secondary hover:text-text-primary hover:bg-bg-elevated"
-                    )}
-                  >
-                    <Users size={20} />
-                    <span className="text-xs font-bold hidden sm:inline">{(activeRoom as any).participants?.length}명</span>
-                  </button>
-                </div>
+                <button 
+                  onClick={() => setShowParticipants(!showParticipants)}
+                  className={cn(
+                    "p-2 rounded-lg transition-all flex items-center gap-2",
+                    showParticipants ? "bg-primary/20 text-primary" : "text-text-secondary hover:text-text-primary hover:bg-bg-elevated"
+                  )}
+                >
+                  <Users size={20} />
+                  <span className="text-xs font-bold hidden sm:inline">{(activeRoom as any).participants?.length}명</span>
+                </button>
               </div>
 
-              {/* Messages Scroll Area */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
                 {messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto">
@@ -492,7 +482,7 @@ export const ChatPage = () => {
                       <Sparkles size={32} />
                     </div>
                     <h3 className="text-lg font-bold mb-2">무엇을 도와드릴까요?</h3>
-                    <p className="text-xs text-text-muted">사내 지식 베이스를 활용하여 정교한 답변을 드립니다. 파일을 업로드하여 문맥을 파악한 답변도 가능합니다.</p>
+                    <p className="text-xs text-text-muted">사내 지식 베이스를 활용하여 정교한 답변을 드립니다.</p>
                   </div>
                 )}
                 {messages.map((msg) => (
@@ -512,7 +502,7 @@ export const ChatPage = () => {
                       msg.role === 'user' ? "flex-row-reverse" : "flex-row"
                     )}>
                       <div className={cn(
-                        "flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border shadow-sm transition-all mt-1",
+                        "flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border shadow-sm mt-1",
                         msg.role === 'user' 
                           ? "bg-primary border-primary/20 text-white" 
                           : "bg-bg-elevated border-border text-accent"
@@ -530,7 +520,7 @@ export const ChatPage = () => {
                         </div>
                         {msg.source && (
                           <div className="flex items-center gap-2 px-2">
-                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-bg-surface border border-border text-[10px] text-accent font-bold">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-bg-surface border border-border text-[10px] text-accent font-bold">
                               <FileText size={10} /> 출처: {msg.source}
                             </span>
                           </div>
@@ -557,7 +547,6 @@ export const ChatPage = () => {
                 )}
               </div>
 
-              {/* Input Overlay Container */}
               <div className="p-4 lg:p-6 bg-gradient-to-t from-bg-base to-transparent sticky bottom-0">
                 <div className="max-w-4xl mx-auto">
                   <div className="relative group">
@@ -628,7 +617,7 @@ export const ChatPage = () => {
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {(activeRoom as any).participants?.map((p: any) => (
-                      <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-bg-elevated/50 border border-border group hover:border-primary/30 transition-all">
+                      <div key={p.email} className="flex items-center justify-between p-3 rounded-xl bg-bg-elevated/50 border border-border group hover:border-primary/30 transition-all">
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-sm",
@@ -645,7 +634,8 @@ export const ChatPage = () => {
                             </p>
                           </div>
                         </div>
-                        {isHost && p.id !== user?.id && (
+                        {/* ✅ p.id → p.email로 비교 */}
+                        {isHost && p.email !== user?.email && (
                           <button className="p-1.5 text-text-muted hover:text-danger rounded-lg opacity-0 group-hover:opacity-100 transition-all">
                             <Trash2 size={14} />
                           </button>
@@ -659,11 +649,11 @@ export const ChatPage = () => {
                         onClick={(e) => deleteRoom(e, activeRoom!.id)}
                         className="w-full h-9 rounded-xl flex items-center justify-center gap-2 bg-danger/10 text-danger hover:bg-danger/20 text-xs font-bold transition-all mb-2"
                       >
-                         <Trash2 size={14} /> 방 삭제하기
+                        <Trash2 size={14} /> 방 삭제하기
                       </button>
                     )}
                     <button className="w-full btn-outline h-9 text-xs rounded-xl flex items-center justify-center gap-2">
-                       <Plus size={14} /> 참여자 초대하기
+                      <Plus size={14} /> 참여자 초대하기
                     </button>
                   </div>
                 </motion.div>
@@ -675,5 +665,3 @@ export const ChatPage = () => {
     </div>
   );
 };
-
-// const navigate = (path: string, options?: any) => window.location.assign(path);

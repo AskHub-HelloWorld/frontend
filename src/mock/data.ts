@@ -85,16 +85,16 @@ export const mockProducts = [
 ];
 
 export const mockAllUsers = [
-  { id: 1, name: "백가람", dept: "프론트엔드", role: "사원" },
-  { id: 2, name: "박상준", dept: "인사/총무", role: "과장" },
-  { id: 3, name: "최원석", dept: "백엔드", role: "대리" },
-  { id: 4, name: "이수호", dept: "디자인", role: "팀장" },
-  { id: 5, name: "정예지", dept: "DevOps", role: "대리" },
-  { id: 6, name: "김민수", dept: "마케팅", role: "과장" },
-  { id: 7, name: "박지연", dept: "IT개발", role: "대리" },
-  { id: 8, name: "최현우", dept: "영업", role: "사원" },
-  { id: 9, name: "윤서아", dept: "기획", role: "팀장" },
-  { id: 10, name: "한민우", dept: "프론트엔드", role: "대리" },
-  { id: 11, name: "서유진", dept: "백엔드", role: "사원" },
-  { id: 12, name: "강동원", dept: "QA", role: "과장" },
+  { id: 1, name: "백가람", dept: "프론트엔드", role: "사원", email: "123456@mgmail.com" },
+  { id: 2, name: "박상준", dept: "인사/총무", role: "과장", email: "123456@mgmail.com" },
+  { id: 3, name: "최원석", dept: "백엔드", role: "대리", email: "123456@mgmail.com" },
+  { id: 4, name: "이수호", dept: "디자인", role: "팀장", email: "123456@mgmail.com"},
+  { id: 5, name: "정예지", dept: "DevOps", role: "대리", email: "123456@mgmail.com" },
+  { id: 6, name: "김민수", dept: "마케팅", role: "과장", email: "123456@mgmail.com" },
+  { id: 7, name: "박지연", dept: "IT개발", role: "대리", email: "123456@mgmail.com" },
+  { id: 8, name: "최현우", dept: "영업", role: "사원", email: "123456@mgmail.com" },
+  { id: 9, name: "윤서아", dept: "기획", role: "팀장", email: "123456@mgmail.com" },
+  { id: 10, name: "한민우", dept: "프론트엔드", role: "대리", email: "123456@mgmail.com" },
+  { id: 11, name: "서유진", dept: "백엔드", role: "사원", email: "123456@mgmail.com" },
+  { id: 12, name: "강동원", dept: "QA", role: "과장", email: "123456@mgmail.com" },
 ];
