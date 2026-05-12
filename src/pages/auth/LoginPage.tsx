@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'motion/react';
-
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,25 +12,25 @@ export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!email || !password) {
-      setError('이메일과 비밀번호를 입력해주세요.');
-      return;
-    }
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
-    setIsSubmitting(true);
-    try {
-      await login(email);
-      navigate('/dashboard');
-    } catch (err) {
-      setError('로그인 중 오류가 발생했습니다.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  if (!email || !password) {
+    setError('이메일과 비밀번호를 입력해주세요.');
+    return;
+  }
+
+  setIsSubmitting(true);
+  try {
+    await login(email, password); // ← password 추가됨
+    navigate('/dashboard');
+  } catch (err: any) {
+    setError(err.response?.data?.message || '로그인 중 오류가 발생했습니다.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden dot-grid">
