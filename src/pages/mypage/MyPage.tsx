@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { 
-  User as
   Award, 
   MessageSquare, 
   CheckCircle, 
@@ -14,7 +13,8 @@ import {
   Building
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockPosts } from '../../mock/data';
+import { signout } from '../../services/userService';
+import { useNavigate } from 'react-router-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -39,50 +39,74 @@ const StatCard = ({ label, value, icon: Icon, trend }: any) => (
   </div>
 );
 
-const departments = ['프론트엔드', '백엔드', '디자인', '기획', 'QA', 'DevOps', '인사/총무', '영업'];
+const positions: { value: string; label: string }[] = [
+  { value: 'FRONTEND', label: '프론트엔드' },
+  { value: 'BACKEND', label: '백엔드' },
+  { value: 'DESIGNER', label: '디자인' },
+  { value: 'DEVOPS', label: 'DevOps' },
+  { value: 'PM', label: '기획/PM' },
+];
 
 export const MyPage = () => {
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout } = useAuth(); // updateProfile 제거 (API 미구현)
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    department: user?.department || '',
+    position: user?.position || '',
     company: user?.company || '',
-    joinedAt: user?.joinedAt || ''
+    joinedDate: user?.joinedDate || ''
   });
 
-  const myPosts = mockPosts.filter(p => p.isMy);
-  const initials = user?.name.substring(1, 3) || '??';
+  // mockPosts 그대로 사용
+const myPosts = user?.myPostList ?? [];
+  const initials = user?.name?.substring(0, 2) || '??';
+  const positionLabel = positions.find(p => p.value === user?.position)?.label || user?.position;
 
   const handleToggleEdit = () => {
     if (isEditing) {
-      updateProfile(editForm);
+      // TODO: 프로필 수정 API 구현 후 연결 예정
+      console.log('수정할 데이터:', editForm);
     } else {
-      // Form sync when entering edit mode
       setEditForm({
         name: user?.name || '',
         email: user?.email || '',
-        department: user?.department || '',
+        position: user?.position || '',
         company: user?.company || '',
-        joinedAt: user?.joinedAt || ''
+        joinedDate: user?.joinedDate || ''
       });
     }
     setIsEditing(!isEditing);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const handleSignout = async () => {
+    if (!confirm('정말 탈퇴하시겠습니까?')) return;
+    try {
+      await signout();
+      await logout();
+      navigate('/login');
+    } catch {
+      alert('회원탈퇴 중 오류가 발생했습니다.');
+    }
   };
 
   return (
     <div className="space-y-10 pb-20">
       {/* Header Profile Section */}
       <section className="relative h-64 rounded-3xl overflow-hidden border border-border-light shadow-2xl">
-        {/* Profile Backdrop */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent opacity-20 dot-grid" />
         <div className="absolute inset-0 bg-gradient-to-t from-bg-base to-transparent" />
         
         <div className="absolute bottom-0 left-0 w-full p-8 flex flex-col md:flex-row items-end gap-6">
           <div className="relative group">
             <div className="w-32 h-32 rounded-3xl bg-primary flex items-center justify-center text-white text-4xl font-black border-4 border-bg-base shadow-2xl overflow-hidden">
-               {initials}
+              {initials}
             </div>
             <button className="absolute bottom-2 right-2 w-10 h-10 rounded-xl bg-bg-surface border border-border text-text-primary shadow-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
               <Camera size={18} />
@@ -122,17 +146,17 @@ export const MyPage = () => {
                 <Briefcase size={16} />
                 {isEditing ? (
                   <select
-                    value={editForm.department}
-                    onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                    value={editForm.position}
+                    onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
                     className="bg-white/10 rounded px-2 py-0.5 outline-none border border-white/10 focus:border-white/30 text-white appearance-none cursor-pointer [&>option]:bg-bg-surface [&>option]:text-text-primary"
                   >
-                    <option value="" disabled className="bg-bg-surface">직군 선택</option>
-                    {departments.map(d => (
-                      <option key={d} value={d} className="bg-bg-surface">{d}</option>
+                    <option value="" disabled>직군 선택</option>
+                    {positions.map(p => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
                     ))}
                   </select>
                 ) : (
-                  <span>{user?.department}</span>
+                  <span>{positionLabel}</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -155,14 +179,14 @@ export const MyPage = () => {
                   <div className="flex items-center gap-2">
                     <input
                       type="date"
-                      value={editForm.joinedAt}
-                      onChange={(e) => setEditForm({ ...editForm, joinedAt: e.target.value })}
+                      value={editForm.joinedDate}
+                      onChange={(e) => setEditForm({ ...editForm, joinedDate: e.target.value })}
                       className="bg-white/10 rounded px-2 py-0.5 outline-none border border-white/10 focus:border-white/30 text-white"
                     />
                     <span>입사</span>
                   </div>
                 ) : (
-                  <span>{user?.joinedAt} 입사</span>
+                  <span>{user?.joinedDate} 입사</span>
                 )}
               </div>
             </div>
@@ -185,12 +209,52 @@ export const MyPage = () => {
         </div>
       </section>
 
-      {/* Stats Dashboard */}
+      {/* Stats - user 타입 필드 사용 */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="작성한 글" value={`${myPosts.length}개`} icon={MessageSquare} trend="8" />
-        <StatCard label="남긴 답변" value="14개" icon={CheckCircle} trend="12" />
-        <StatCard label="총 획득 포인트" value={`${user?.points.toLocaleString()}P`} icon={Award} />
-        <StatCard label="구매한 상품" value="4개" icon={ShoppingBag} />
+        <StatCard label="작성한 글" value={`${user?.postCount ?? 0}개`} icon={MessageSquare}/>
+        <StatCard label="남긴 답변" value={`${user?.myCommentCount ?? 0}개`} icon={CheckCircle}/>
+        <StatCard label="현재 포인트" value={`${user?.point?.toLocaleString() ?? 0}P`} icon={Award} />
+        <StatCard label="구매한 상품" value="0개" icon={ShoppingBag} />
+      </section>
+
+      {/* 내 게시글 - mockPosts 유지 */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <MessageSquare className="text-primary" size={20} /> 내가 쓴 글
+          </h2>
+        </div>
+        {myPosts.length === 0 ? (
+          <div className="glass-card p-8 text-center text-text-muted">작성한 글이 없습니다.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {myPosts.map((post, index) => (
+              <div key={index} className="glass-card p-4 flex items-center gap-4 group cursor-pointer h-full">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {post.isResolved && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/10 text-success border border-success/20 shrink-0">해결됨</span>
+                    )}
+                    <h3 className="text-sm font-semibold text-text-primary truncate group-hover:text-primary transition-colors">
+                      {post.title}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-text-muted">
+                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                    <span>•</span>
+                    <span>댓글 {post.commentCount}개</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-text-secondary flex items-center gap-1 justify-end">
+                    <MessageSquare size={14} />
+                    <span className="text-xs font-medium">{post.commentCount}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Account Settings */}
@@ -200,12 +264,15 @@ export const MyPage = () => {
         </h3>
         <div className="flex flex-wrap gap-4">
           <button 
-            onClick={logout}
+            onClick={handleLogout}
             className="px-8 py-3 rounded-xl bg-danger text-white font-bold shadow-xl shadow-danger/20 hover:bg-danger/80 transition-all flex items-center gap-2"
           >
             <LogOut size={18} /> 로그아웃
           </button>
-          <button className="px-8 py-3 rounded-xl border border-danger/30 text-danger font-bold hover:bg-danger/10 transition-all">
+          <button
+            onClick={handleSignout}
+            className="px-8 py-3 rounded-xl border border-danger/30 text-danger font-bold hover:bg-danger/10 transition-all"
+          >
             회원 탈퇴
           </button>
         </div>
