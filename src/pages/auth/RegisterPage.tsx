@@ -136,7 +136,7 @@ export const RegisterPage = () => {
               <div className="relative">
                 <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                 <select 
-                  name="department"
+                  name="position"
                   value={formData.position}
                   onChange={handleChange}
                   className="w-full input-field pl-9 text-sm h-10 appearance-none"
