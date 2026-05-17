@@ -9,10 +9,11 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { mockComments } from '../../mock/data';
 import { useAuth } from '../../context/AuthContext';
-import { getPostDetail } from '../../services/postService';
+import { getPostDetail, resolvePost } from '../../services/postService';
+import { getComments, createComment } from '../../services/commentService';
 import type { PostDetail } from '../../types/post';
+import type { CommentItem } from '../../types/comment';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -75,17 +76,22 @@ export const PostDetailPage = () => {
   const { user } = useAuth();
 
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [hasNextComment, setHasNextComment] = useState(false);
+  const [commentPage, setCommentPage] = useState(0);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [isCommentLoading, setIsCommentLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [error, setError] = useState('');
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [commentInput, setCommentInput] = useState('');
 
-  // comment는 API 구현 전까지 mock 유지
-  const comments = mockComments[Number(id) as keyof typeof mockComments] || [];
-
+  // 게시글 상세 조회
   useEffect(() => {
     if (!id) return;
-    const fetch = async () => {
+    const fetchPost = async () => {
       setIsLoading(true);
       try {
         const data = await getPostDetail(Number(id));
@@ -96,13 +102,70 @@ export const PostDetailPage = () => {
         setIsLoading(false);
       }
     };
-    fetch();
+    fetchPost();
   }, [id]);
+
+  // 댓글 목록 조회
+  useEffect(() => {
+    if (!id) return;
+    const fetchComments = async () => {
+      setIsCommentLoading(true);
+      try {
+        const data = await getComments(Number(id), { page: commentPage, size: 10 });
+        setComments(prev => commentPage === 0 ? data.content : [...prev, ...data.content]);
+        setHasNextComment(data.hasNext);
+      } catch {
+        console.error('댓글 로딩 실패');
+      } finally {
+        setIsCommentLoading(false);
+      }
+    };
+    fetchComments();
+  }, [id, commentPage]);
+
+  // 댓글 등록
+  const handleSubmitComment = async () => {
+    if (!commentInput.trim() || !id) return;
+    setIsSubmitting(true);
+    try {
+      await createComment({
+        content: commentInput,
+        isAnonymous,
+        postId: Number(id),
+      });
+      setCommentInput('');
+      setIsAnonymous(false);
+      // 댓글 목록 새로고침
+      setCommentPage(0);
+      const data = await getComments(Number(id), { page: 0, size: 10 });
+      setComments(data.content);
+      setHasNextComment(data.hasNext);
+      // 댓글 수 +1 반영
+      setPost(prev => prev ? { ...prev, commentCount: prev.commentCount + 1 } : prev);
+    } catch {
+      alert('댓글 등록에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 답변 채택
+  const handleResolve = async (commentId: number) => {
+    if (!id) return;
+    if (!confirm('이 답변을 채택하시겠습니까?')) return;
+    try {
+      await resolvePost(Number(id), commentId);
+      // 게시글 상태 새로고침
+      const data = await getPostDetail(Number(id));
+      setPost(data);
+    } catch {
+      alert('채택에 실패했습니다.');
+    }
+  };
 
   if (isLoading) return <div className="text-center py-20 text-text-muted">불러오는 중...</div>;
   if (error || !post) return <div className="text-center py-20 text-text-muted">{error || '게시글을 찾을 수 없습니다.'}</div>;
 
-  // isMine 필드가 상세조회 응답에 없으므로 writer로 비교
   const isPostAuthor = post.writer === user?.name;
 
   return (
@@ -151,8 +214,11 @@ export const PostDetailPage = () => {
                 </p>
               </div>
             </div>
-            <button className="p-2 text-text-muted hover:text-danger transition-colors">
-              <Flag size={18} onClick={() => setReportModalOpen(true)} />
+            <button 
+              onClick={() => setReportModalOpen(true)}
+              className="p-2 text-text-muted hover:text-danger transition-colors"
+            >
+              <Flag size={18} />
             </button>
           </div>
         </header>
@@ -161,7 +227,7 @@ export const PostDetailPage = () => {
           {post.content}
         </div>
 
-        {/* 채택된 답변 미리보기 - 상세조회 응답에 포함 */}
+        {/* 채택된 답변 */}
         {post.isResolved && post.resolvedComment && (
           <div className="p-6 rounded-2xl bg-success/5 border border-success/20 space-y-3">
             <p className="text-xs font-black text-success uppercase tracking-widest flex items-center gap-1.5">
@@ -181,7 +247,7 @@ export const PostDetailPage = () => {
         )}
       </article>
 
-      {/* Comments Section - comment API 나오면 교체 예정 */}
+      {/* Comments Section */}
       <section className="space-y-6">
         <h3 className="text-xl font-bold flex items-center gap-2">
           <MessageCircle className="text-primary" size={24} />
@@ -190,61 +256,94 @@ export const PostDetailPage = () => {
 
         <div className="space-y-4">
           <AnimatePresence>
-            {[...comments].sort((a, b) => (b.isAdopted ? 1 : 0) - (a.isAdopted ? 1 : 0)).map((comment) => {
-              const isMyComment = comment.isMy || comment.author === user?.name;
-              return (
-                <motion.div 
-                  key={comment.id}
-                  layout
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={cn(
-                    "p-6 glass-card relative",
-                    comment.isAdopted ? "border-success bg-success/5 shadow-lg shadow-success/5" : "border-border"
-                  )}
-                >
-                  {comment.isAdopted && (
-                    <div className="absolute top-0 right-8 -translate-y-1/2 px-3 py-1 rounded bg-success text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-lg">
-                      <CheckCircle size={12} /> 채택
+            {comments.map((comment) => (
+              <motion.div 
+                key={comment.commentId}
+                layout
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={cn(
+                  "p-6 glass-card relative",
+                  // 채택된 댓글은 resolvedComment의 content로 비교
+                  post.resolvedComment?.content === comment.content
+                    ? "border-success bg-success/5 shadow-lg shadow-success/5"
+                    : "border-border"
+                )}
+              >
+                {post.resolvedComment?.content === comment.content && (
+                  <div className="absolute top-0 right-8 -translate-y-1/2 px-3 py-1 rounded bg-success text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-lg">
+                    <CheckCircle size={12} /> 채택
+                  </div>
+                )}
+
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center border",
+                      post.resolvedComment?.content === comment.content
+                        ? "bg-success/20 text-success border-success/30"
+                        : "bg-bg-elevated border-border text-text-muted"
+                    )}>
+                      <UserIcon size={16} />
                     </div>
-                  )}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center border",
-                        comment.isAdopted ? "bg-success/20 text-success border-success/30" : "bg-bg-elevated border-border text-text-muted"
-                      )}>
-                        <UserIcon size={16} />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-text-primary">{comment.writer}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-bg-surface border border-border text-text-muted font-bold">
+                          {comment.position}
+                        </span>
+                        {comment.isMine && (
+                          <span className="text-[10px] font-black text-primary uppercase ml-1">MY</span>
+                        )}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-text-primary">{comment.author}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-bg-surface border border-border text-text-muted font-bold">{comment.department}</span>
-                          {isMyComment && <span className="text-[10px] font-black text-primary uppercase ml-1">MY</span>}
-                        </div>
-                        <p className="text-[10px] text-text-muted">
-                          {new Date(comment.createdAt).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
+                      <p className="text-[10px] text-text-muted">
+                        {new Date(comment.createdAt).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1">
-                      {isPostAuthor && !post.isResolved && (
-                        <button className="text-xs font-bold px-3 py-1.5 rounded-lg bg-bg-surface border border-success/30 text-success hover:bg-success hover:text-white transition-all">
-                          채택하기
-                        </button>
-                      )}
-                      <button className="p-2 text-text-muted hover:text-text-primary">
-                        <Flag size={14} onClick={() => setReportModalOpen(true)} />
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {/* 채택 버튼 - 게시글 작성자이고 미해결이고 내 댓글이 아닌 경우 */}
+                    {isPostAuthor && !post.isResolved && !comment.isMine && (
+                      <button
+                        onClick={() => handleResolve(comment.commentId)}
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-bg-surface border border-success/30 text-success hover:bg-success hover:text-white transition-all"
+                      >
+                        채택하기
                       </button>
-                    </div>
+                    )}
+                    <button
+                      onClick={() => setReportModalOpen(true)}
+                      className="p-2 text-text-muted hover:text-text-primary"
+                    >
+                      <Flag size={14} />
+                    </button>
                   </div>
-                  <div className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
-                    {comment.content}
-                  </div>
-                </motion.div>
-              );
-            })}
+                </div>
+
+                <div className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+                  {comment.content}
+                </div>
+              </motion.div>
+            ))}
           </AnimatePresence>
+
+          {/* 댓글 더보기 */}
+          {hasNextComment && (
+            <button
+              onClick={() => setCommentPage(prev => prev + 1)}
+              disabled={isCommentLoading}
+              className="w-full py-3 rounded-xl border border-border text-sm font-bold text-text-muted hover:border-primary hover:text-primary transition-all disabled:opacity-50"
+            >
+              {isCommentLoading ? '불러오는 중...' : '답변 더보기'}
+            </button>
+          )}
+
+          {!isCommentLoading && comments.length === 0 && (
+            <div className="text-center py-10 text-text-muted text-sm">
+              아직 답변이 없습니다. 첫 번째 답변을 남겨보세요!
+            </div>
+          )}
         </div>
 
         {/* Comment Input */}
@@ -265,12 +364,21 @@ export const PostDetailPage = () => {
                 placeholder="도움이 될 만한 답변을 남겨주세요 (채택 시 활동 포인트가 지급됩니다)."
               />
               <div className="flex items-center justify-between p-3 bg-bg-base/50 rounded-b-lg border-t border-border">
-                <span className="text-[10px] text-text-muted font-medium">비속어나 근거 없는 비방은 인사 처분될 수 있습니다.</span>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                    className="w-4 h-4 accent-primary"
+                  />
+                  <span className="text-[10px] text-text-muted font-medium">익명으로 등록</span>
+                </label>
                 <button
-                  disabled={!commentInput.trim()}
+                  onClick={handleSubmitComment}
+                  disabled={!commentInput.trim() || isSubmitting}
                   className="btn-primary h-9 px-6 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  답변 등록
+                  {isSubmitting ? '등록 중...' : '답변 등록'}
                 </button>
               </div>
             </div>
