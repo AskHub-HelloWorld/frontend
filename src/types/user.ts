@@ -1,5 +1,5 @@
-//user type정의
 import type { ApiResponse } from './auth';
+import type { Position } from './auth';
 
 // 내 게시글
 export interface MyPost {
@@ -19,7 +19,7 @@ export interface PointHistory {
 export interface MyPageData {
   name: string;
   company: string;
-  position: string;
+  position: Position;
   email: string;
   joinedDate: string;
   postCount: number;
@@ -29,6 +29,37 @@ export interface MyPageData {
   myPointHistory: PointHistory[];
 }
 
-// ApiResponse 래핑 타입
+// 내 활동 요약
+export interface ActivitySummary {
+  postCount: number;
+  commentCount: number;
+  point: number;
+}
+
+// 회원 정보 수정 요청
+export interface UpdateUserRequest {
+  name: string;
+  company: string;
+  position: Position;
+  email: string;
+  joinedDate: string; // 'YYYY-MM-DD'
+}
+
+// 회사명으로 사원 검색 결과
+export interface UserSearchItem {
+  userId: number;
+  name: string;
+  position: Position;
+}
+
+export interface UserSearchResult {
+  userList: UserSearchItem[];
+}
+
+// ApiResponse 타입 별칭
 export type MyPageResponse = ApiResponse<MyPageData>;
 export type SignoutResponse = ApiResponse<string>;
+export type ActivitySummaryResponse = ApiResponse<ActivitySummary>;
+export type UpdateUserResponse = ApiResponse<string>;
+export type CheckEmailResponse = ApiResponse<string>;
+export type UserSearchResponse = ApiResponse<UserSearchResult>;
