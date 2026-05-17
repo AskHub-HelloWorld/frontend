@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, User, Building, Mail, Lock, Calendar, Briefcase } from 'lucide-react';
 import { motion } from 'motion/react';
 import { signup } from '../../services/authService';
+import { checkEmail } from '../../services/userService';
 import type { Position } from '../../types/auth';
 
 export const RegisterPage = () => {
@@ -10,29 +11,55 @@ export const RegisterPage = () => {
     company: '',
     email: '',
     name: '',
-    position: '' as Position,  // ← position으로 변경
-    joinedDate: '',             // ← joinedDate로 변경
+    position: '' as Position,
+    joinedDate: '',
     password: '',
     confirmPassword: ''
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailChecked, setEmailChecked] = useState(false);
+  const [emailMessage, setEmailMessage] = useState('');
+
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const [error, setError] = useState('');
+  const handleCheckEmail = async () => {
+    if (!formData.email) {
+      setEmailMessage('이메일을 입력해주세요.');
+      setEmailChecked(false);
+      return;
+    }
+    setIsCheckingEmail(true);
+    setEmailMessage('');
+    try {
+      const message = await checkEmail(formData.email);
+      setEmailMessage(message || '사용 가능한 이메일입니다.');
+      setEmailChecked(true);
+    } catch (e: any) {
+      setEmailMessage(e.response?.data?.message || '이미 사용 중인 이메일입니다.');
+      setEmailChecked(false);
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // 유효성 검사
-    if (!formData.company || !formData.email || !formData.name || 
+    if (!formData.company || !formData.email || !formData.name ||
         !formData.position || !formData.joinedDate || !formData.password) {
       setError('모든 항목을 입력해주세요.');
+      return;
+    }
+    if (!emailChecked) {
+      setError('이메일 중복확인을 해주세요.');
       return;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -48,7 +75,7 @@ export const RegisterPage = () => {
         name: formData.name,
         company: formData.company,
         position: formData.position,
-        joinedDate: formData.joinedDate, // 이미 'YYYY-MM-DD' 형식
+        joinedDate: formData.joinedDate,
       });
       navigate('/login');
     } catch (err: any) {
@@ -59,11 +86,11 @@ export const RegisterPage = () => {
   };
 
   const positions: { value: Position; label: string }[] = [
-  { value: 'FRONTEND', label: '프론트엔드' },
-  { value: 'BACKEND', label: '백엔드' },
-  { value: 'DESIGNER', label: '디자인' },
-  { value: 'DEVOPS', label: 'DevOps' },
-  { value: 'PM', label: '기획/PM' },
+    { value: 'FRONTEND', label: '프론트엔드' },
+    { value: 'BACKEND', label: '백엔드' },
+    { value: 'DESIGNER', label: '디자인' },
+    { value: 'DEVOPS', label: 'DevOps' },
+    { value: 'PM', label: '기획/PM' },
   ];
 
   return (
@@ -94,10 +121,11 @@ export const RegisterPage = () => {
                   value={formData.company}
                   onChange={handleChange}
                   className="w-full input-field pl-9 text-sm h-10" 
-                  placeholder="회사 선택"
+                  placeholder="회사명 입력"
                 />
               </div>
             </div>
+
             <div>
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5 ml-1">Email (ID)</label>
               <div className="relative flex gap-2">
@@ -107,13 +135,35 @@ export const RegisterPage = () => {
                     name="email"
                     type="email"
                     value={formData.email}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      handleChange(e);
+                      setEmailChecked(false);
+                      setEmailMessage('');
+                    }}
                     className="w-full input-field pl-9 text-sm h-10" 
-                    placeholder="email@nexus.com"
+                    placeholder="email@company.com"
                   />
                 </div>
-                <button type="button" className="px-3 bg-bg-elevated border border-border rounded-lg text-xs font-medium hover:border-primary transition-colors">중복확인</button>
+                <button
+                  type="button"
+                  onClick={handleCheckEmail}
+                  disabled={isCheckingEmail || !formData.email}
+                  className={`px-3 border rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ${
+                    emailChecked
+                      ? 'bg-success/10 border-success text-success'
+                      : 'bg-bg-elevated border-border hover:border-primary'
+                  }`}
+                >
+                  {isCheckingEmail ? (
+                    <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                  ) : emailChecked ? '확인완료' : '중복확인'}
+                </button>
               </div>
+              {emailMessage && (
+                <p className={`text-[11px] font-medium mt-1 ml-1 ${emailChecked ? 'text-success' : 'text-danger'}`}>
+                  {emailMessage}
+                </p>
+              )}
             </div>
           </div>
 
@@ -143,7 +193,7 @@ export const RegisterPage = () => {
                 >
                   <option value="">직군 선택</option>
                   {positions.map(p => (
-                    <option key={p.value} value={p.value}>{p.label}</option>  // ← 변경
+                    <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
                 </select>
               </div>
@@ -179,8 +229,8 @@ export const RegisterPage = () => {
                 />
               </div>
               <div className="flex gap-2 mt-2">
-                {[1,2,3].map(i => (
-                  <div key={i} className={`h-1 flex-1 rounded-full ${formData.password.length > i*3 ? 'bg-primary' : 'bg-border'}`} />
+                {[1, 2, 3].map(i => (
+                  <div key={i} className={`h-1 flex-1 rounded-full ${formData.password.length > i * 3 ? 'bg-primary' : 'bg-border'}`} />
                 ))}
               </div>
             </div>
@@ -197,6 +247,10 @@ export const RegisterPage = () => {
                   placeholder="••••••••"
                 />
               </div>
+              {/* 비밀번호 불일치 실시간 표시 */}
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-[11px] text-danger font-medium mt-1 ml-1">비밀번호가 일치하지 않습니다.</p>
+              )}
             </div>
           </div>
 
@@ -215,7 +269,9 @@ export const RegisterPage = () => {
             disabled={isSubmitting}
             className="w-full btn-primary h-12 mt-4"
           >
-            {isSubmitting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '가입하기'}
+            {isSubmitting ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : '가입하기'}
           </button>
         </form>
 
