@@ -13,7 +13,9 @@ import {
   Building
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { signout } from '../../services/userService';
+import { signout, updateUser } from '../../services/userService';
+import type { UpdateUserRequest } from '../../types/user';
+import type { Position } from '../../types/auth';
 import { useNavigate } from 'react-router-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -39,7 +41,7 @@ const StatCard = ({ label, value, icon: Icon, trend }: any) => (
   </div>
 );
 
-const positions: { value: string; label: string }[] = [
+const positions: { value: Position; label: string }[] = [
   { value: 'FRONTEND', label: '프론트엔드' },
   { value: 'BACKEND', label: '백엔드' },
   { value: 'DESIGNER', label: '디자인' },
@@ -48,36 +50,52 @@ const positions: { value: string; label: string }[] = [
 ];
 
 export const MyPage = () => {
-  const { user, logout } = useAuth(); // updateProfile 제거 (API 미구현)
+  const { user, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  const [editForm, setEditForm] = useState<UpdateUserRequest>({
     name: user?.name || '',
     email: user?.email || '',
-    position: user?.position || '',
+    position: (user?.position as Position) || 'FRONTEND',
     company: user?.company || '',
     joinedDate: user?.joinedDate || ''
   });
 
-  // mockPosts 그대로 사용
-const myPosts = user?.myPostList ?? [];
+  const myPosts = user?.myPostList ?? [];
   const initials = user?.name?.substring(0, 2) || '??';
   const positionLabel = positions.find(p => p.value === user?.position)?.label || user?.position;
 
-  const handleToggleEdit = () => {
+  const handleToggleEdit = async () => {
     if (isEditing) {
-      // TODO: 프로필 수정 API 구현 후 연결 예정
-      console.log('수정할 데이터:', editForm);
+      if (!editForm.name || !editForm.email || !editForm.position || !editForm.company || !editForm.joinedDate) {
+        setEditError('모든 항목을 입력해주세요.');
+        return;
+      }
+      setIsSaving(true);
+      setEditError('');
+      try {
+        await updateUser(editForm);
+        updateProfile(editForm);
+        setIsEditing(false);
+      } catch (e: any) {
+        setEditError(e.response?.data?.message || '수정에 실패했습니다.');
+      } finally {
+        setIsSaving(false);
+      }
     } else {
+      setEditError('');
       setEditForm({
         name: user?.name || '',
         email: user?.email || '',
-        position: user?.position || '',
+        position: (user?.position as Position) || 'FRONTEND',
         company: user?.company || '',
         joinedDate: user?.joinedDate || ''
       });
+      setIsEditing(true);
     }
-    setIsEditing(!isEditing);
   };
 
   const handleLogout = async () => {
@@ -127,6 +145,7 @@ const myPosts = user?.myPostList ?? [];
                 <h1 className="text-3xl font-heading font-black text-white">{user?.name}</h1>
               )}
             </div>
+
             <div className="flex flex-wrap items-center gap-6 text-sm text-text-secondary font-medium">
               <div className="flex items-center gap-2">
                 <Building size={16} />
@@ -142,12 +161,13 @@ const myPosts = user?.myPostList ?? [];
                   <span>{user?.company}</span>
                 )}
               </div>
+
               <div className="flex items-center gap-2">
                 <Briefcase size={16} />
                 {isEditing ? (
                   <select
                     value={editForm.position}
-                    onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                    onChange={(e) => setEditForm({ ...editForm, position: e.target.value as Position })}
                     className="bg-white/10 rounded px-2 py-0.5 outline-none border border-white/10 focus:border-white/30 text-white appearance-none cursor-pointer [&>option]:bg-bg-surface [&>option]:text-text-primary"
                   >
                     <option value="" disabled>직군 선택</option>
@@ -159,6 +179,7 @@ const myPosts = user?.myPostList ?? [];
                   <span>{positionLabel}</span>
                 )}
               </div>
+
               <div className="flex items-center gap-2">
                 <Mail size={16} />
                 {isEditing ? (
@@ -173,8 +194,9 @@ const myPosts = user?.myPostList ?? [];
                   <span>{user?.email}</span>
                 )}
               </div>
+
               <div className="flex items-center gap-2">
-                <Calendar size={16} /> 
+                <Calendar size={16} />
                 {isEditing ? (
                   <div className="flex items-center gap-2">
                     <input
@@ -190,34 +212,39 @@ const myPosts = user?.myPostList ?? [];
                 )}
               </div>
             </div>
+
+            {editError && (
+              <p className="text-xs text-danger font-bold">{editError}</p>
+            )}
           </div>
 
           <div className="flex gap-3 mb-2">
             <button 
               onClick={handleToggleEdit}
+              disabled={isSaving}
               className={cn(
-                "px-6 py-2.5 rounded-xl border backdrop-blur-sm text-sm font-bold transition-all flex items-center gap-2 shadow-xl",
+                "px-6 py-2.5 rounded-xl border backdrop-blur-sm text-sm font-bold transition-all flex items-center gap-2 shadow-xl disabled:opacity-50",
                 isEditing 
                   ? "bg-primary text-white border-primary hover:bg-primary/80" 
                   : "bg-bg-surface/50 border-border text-text-primary hover:border-primary"
               )}
             >
               {isEditing ? <CheckCircle size={16} /> : <Edit3 size={16} />} 
-              {isEditing ? '변경사항 저장' : '프로필 편집'}
+              {isSaving ? '저장 중...' : isEditing ? '변경사항 저장' : '프로필 편집'}
             </button>
           </div>
         </div>
       </section>
 
-      {/* Stats - user 타입 필드 사용 */}
+      {/* Stats */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="작성한 글" value={`${user?.postCount ?? 0}개`} icon={MessageSquare}/>
-        <StatCard label="남긴 답변" value={`${user?.myCommentCount ?? 0}개`} icon={CheckCircle}/>
+        <StatCard label="작성한 글" value={`${user?.postCount ?? 0}개`} icon={MessageSquare} />
+        <StatCard label="남긴 답변" value={`${user?.myCommentCount ?? 0}개`} icon={CheckCircle} />
         <StatCard label="현재 포인트" value={`${user?.point?.toLocaleString() ?? 0}P`} icon={Award} />
         <StatCard label="구매한 상품" value="0개" icon={ShoppingBag} />
       </section>
 
-      {/* 내 게시글 - mockPosts 유지 */}
+      {/* 내가 쓴 글 */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -257,7 +284,7 @@ const myPosts = user?.myPostList ?? [];
         )}
       </section>
 
-      {/* Account Settings */}
+      {/* 계정 관리 */}
       <section className="glass-card p-8 border-border-light bg-danger/5">
         <h3 className="text-xl font-bold text-danger flex items-center gap-2 mb-8 tracking-tight">
           계정 관리
