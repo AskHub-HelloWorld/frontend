@@ -6,7 +6,10 @@ export type Position =
   | 'BACKEND'
   | 'DESIGNER'
   | 'DEVOPS'
-  | 'PM';
+  | 'PM'
+  | 'AI'
+  | 'SECURITY'
+  | 'FULLSTACK';
 
 //================= 요청 타입 =======================================
 

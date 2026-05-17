@@ -5,12 +5,26 @@ import {
   Check, 
   Info
 } from 'lucide-react';
+import { createPost } from '../../services/postService';
+import type { Category } from '../../types/post';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+// 백엔드 enum ↔ 한글 라벨 매핑
+const positions: { value: Category; label: string }[] = [
+  { value: 'FRONTEND', label: '프론트엔드' },
+  { value: 'BACKEND', label: '백엔드' },
+  { value: 'AI', label: 'AI' },
+  { value: 'DESIGNER', label: '디자인' },
+  { value: 'FULLSTACK', label: '풀스택' },
+  { value: 'SECURITY', label: '보안' },
+  { value: 'UNKNOWN', label: '미정' },
+  { value: 'OTHER', label: '기타' },
+];
 
 export const WritePostPage = () => {
   const navigate = useNavigate();
@@ -21,24 +35,31 @@ export const WritePostPage = () => {
   const [title, setTitle] = useState(editPost?.title || '');
   const [content, setContent] = useState(editPost?.content || draftData);
   const [isAnonymous, setIsAnonymous] = useState(editPost?.isAnonymous || false);
-  const [selectedDepts, setSelectedDepts] = useState<string[]>(
-    editPost?.department ? [editPost.department] : []
+  const [selectedPosition, setSelectedPosition] = useState<Category | ''>(
+    editPost?.position || ''
   );
+  const [point, setPoint] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const departments = ['프론트엔드', '백엔드', '디자인', '기획', 'QA', 'DevOps', '인사/총무', '영업'];
-
-  const handleDeptToggle = (dept: string) => {
-    setSelectedDepts(prev => 
-      prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]
-    );
-  };
+  const [error, setError] = useState('');
 
   const handleRegister = async () => {
-    if (!title || !content) return;
+    if (!title.trim() || !content.trim() || !selectedPosition) return;
+    setError('');
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    navigate('/knowledge');
+    try {
+      const postId = await createPost({
+        title,
+        content,
+        isAnonymous,
+        position: selectedPosition,
+        point,
+      });
+      navigate(`/knowledge/post/${postId}`); // 생성된 게시글 상세로 이동
+    } catch (e: any) {
+      setError(e.response?.data?.message || '게시글 등록에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -57,7 +78,7 @@ export const WritePostPage = () => {
       </div>
 
       <div className="glass-card p-6 md:p-10 space-y-8 border-border-light shadow-2xl">
-        {/* Caution Message */}
+        {/* 안내 메시지 */}
         <div className="flex gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20 text-primary">
           <Info size={20} className="shrink-0 mt-0.5" />
           <div className="space-y-1">
@@ -67,7 +88,7 @@ export const WritePostPage = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Title */}
+          {/* 제목 */}
           <div className="space-y-2">
             <label className="block text-xs font-black text-text-muted uppercase tracking-widest ml-1">질문 제목</label>
             <input 
@@ -79,54 +100,78 @@ export const WritePostPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-            {/* Target Audience */}
+            {/* 직군 선택 - 단일 선택 + API enum */}
             <div className="space-y-2">
-              <label className="block text-xs font-black text-text-muted uppercase tracking-widest ml-1">답변 희망 부서 (중복 선택)</label>
+              <label className="block text-xs font-black text-text-muted uppercase tracking-widest ml-1">
+                답변 희망 직군 <span className="text-danger">*</span>
+              </label>
               <div className="flex flex-wrap gap-2">
-                {departments.map((dept) => (
+                {positions.map(({ value, label }) => (
                   <button
-                    key={dept}
-                    onClick={() => handleDeptToggle(dept)}
+                    key={value}
+                    onClick={() => setSelectedPosition(value)}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
-                      selectedDepts.includes(dept) 
-                        ? "bg-primary/20 border-primary text-primary" 
+                      selectedPosition === value
+                        ? "bg-primary/20 border-primary text-primary"
                         : "bg-bg-elevated border-border text-text-muted hover:border-text-secondary"
                     )}
                   >
-                    {dept}
+                    {label}
                   </button>
                 ))}
               </div>
+              {!selectedPosition && (
+                <p className="text-[10px] text-text-muted ml-1">직군을 선택해주세요.</p>
+              )}
             </div>
 
-            {/* Anonymous Toggle */}
-            <div className="space-y-2">
-              <label className="block text-xs font-black text-text-muted uppercase tracking-widest ml-1">공개 설정</label>
-              <div 
-                onClick={() => setIsAnonymous(!isAnonymous)}
-                className={cn(
-                  "flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all",
-                  isAnonymous ? "border-primary bg-primary/5" : "border-border bg-bg-base"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-                    isAnonymous ? "bg-primary text-white" : "bg-bg-elevated text-text-muted"
-                  )}>
-                    <Check size={20} className={isAnonymous ? "opacity-100" : "opacity-20"} />
-                  </div>
-                  <div>
-                    <p className={cn("text-sm font-bold", isAnonymous ? "text-primary" : "text-text-primary")}>익명으로 질문하기</p>
-                    <p className="text-[10px] text-text-muted">이름과 부서가 숨겨진 채 게시됩니다.</p>
+            <div className="space-y-4">
+              {/* 익명 설정 */}
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-text-muted uppercase tracking-widest ml-1">공개 설정</label>
+                <div 
+                  onClick={() => setIsAnonymous(!isAnonymous)}
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all",
+                    isAnonymous ? "border-primary bg-primary/5" : "border-border bg-bg-base"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
+                      isAnonymous ? "bg-primary text-white" : "bg-bg-elevated text-text-muted"
+                    )}>
+                      <Check size={20} className={isAnonymous ? "opacity-100" : "opacity-20"} />
+                    </div>
+                    <div>
+                      <p className={cn("text-sm font-bold", isAnonymous ? "text-primary" : "text-text-primary")}>익명으로 질문하기</p>
+                      <p className="text-[10px] text-text-muted">이름과 부서가 숨겨진 채 게시됩니다.</p>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              {/* 포인트 설정 */}
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-text-muted uppercase tracking-widest ml-1">채택 포인트</label>
+                <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-bg-base">
+                  <input
+                    type="number"
+                    min={0}
+                    value={point}
+                    onChange={(e) => setPoint(Math.max(0, Number(e.target.value)))}
+                    className="w-full bg-transparent text-lg font-bold text-text-primary focus:outline-none"
+                    placeholder="0"
+                  />
+                  <span className="text-sm font-bold text-text-muted shrink-0">P</span>
+                </div>
+                <p className="text-[10px] text-text-muted ml-1">답변 채택 시 지급할 포인트를 설정하세요. (0P = 무설정)</p>
               </div>
             </div>
           </div>
 
-          {/* Content Body */}
+          {/* 내용 */}
           <div className="space-y-2 pt-2">
             <label className="block text-xs font-black text-text-muted uppercase tracking-widest ml-1">상세 내용</label>
             <textarea 
@@ -138,6 +183,11 @@ export const WritePostPage = () => {
           </div>
         </div>
 
+        {/* 에러 메시지 */}
+        {error && (
+          <p className="text-sm text-danger font-medium">{error}</p>
+        )}
+
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button 
             onClick={() => navigate(-1)}
@@ -147,7 +197,7 @@ export const WritePostPage = () => {
           </button>
           <button 
             onClick={handleRegister}
-            disabled={!title || !content || isSubmitting}
+            disabled={!title.trim() || !content.trim() || !selectedPosition || isSubmitting}
             className="btn-primary px-10 py-3 h-auto text-base font-black shadow-xl shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (

@@ -1,6 +1,5 @@
 //post type정의
 import type { ApiResponse } from './auth';
-import type { Position } from './auth';
 
 // 카테고리 (게시글 직군 필터)
 export type Category = 
@@ -25,7 +24,7 @@ export interface PostItem {
   postId: number;
   title: string;
   content: string;
-  position: Position;
+  position: Category;
   point: number;
   isResolved: boolean;
   writer: string;
@@ -45,7 +44,7 @@ export interface PageData<T> {
 // 채택된 댓글
 export interface ResolvedComment {
   writer: string;
-  position: Position;
+  position: Category;
   createdAt: string;
   content: string;
 }
@@ -54,7 +53,7 @@ export interface ResolvedComment {
 export interface PostDetail {
   title: string;
   content: string;
-  position: Position;
+  position: Category;
   isResolved: boolean;
   writer: string;
   createdAt: string;
@@ -68,7 +67,7 @@ export interface CreatePostRequest {
   isAnonymous: boolean;
   content: string;
   point: number;
-  position: Position;
+  position: Category;
 }
 
 // ApiResponse 타입 별칭
