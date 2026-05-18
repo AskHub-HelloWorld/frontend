@@ -5,6 +5,7 @@ import type {
   SignupRequest,
   LoginRequest,
   RestoreRequest,
+  CheckEmailResponse,
 } from '../types/auth';
 
 // 회원가입 - data: string 반환
@@ -34,5 +35,11 @@ export const reissue = async (): Promise<TokenData> => {
 // 회원복구 - data: string 반환
 export const restore = async (body: RestoreRequest): Promise<string> => {
   const { data } = await api.patch<ApiResponse<string>>('/auth/restore', body);
+  return data.data;
+};
+
+// 이메일 중복 확인
+export const checkEmail = async (email: string): Promise<string> => {
+  const { data } = await api.post<CheckEmailResponse>('/auth/email', { email });
   return data.data;
 };

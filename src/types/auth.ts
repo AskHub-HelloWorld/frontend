@@ -59,3 +59,5 @@ export interface TokenData {
   accessToken: string;
   refreshToken: string;
 }
+
+export type CheckEmailResponse = ApiResponse<string>;

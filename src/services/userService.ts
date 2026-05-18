@@ -8,7 +8,6 @@ import type {
   SignoutResponse,
   ActivitySummaryResponse,
   UpdateUserResponse,
-  CheckEmailResponse,
   UserSearchResponse,
 } from '../types/user';
 
@@ -33,12 +32,6 @@ export const updateUser = async (body: UpdateUserRequest): Promise<string> => {
 // 회원 탈퇴
 export const signout = async (): Promise<string> => {
   const { data } = await api.patch<SignoutResponse>('/api/users/signout');
-  return data.data;
-};
-
-// 이메일 중복 확인
-export const checkEmail = async (email: string): Promise<string> => {
-  const { data } = await api.post<CheckEmailResponse>('/api/users/email', { email });
   return data.data;
 };
 

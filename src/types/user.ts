@@ -61,5 +61,4 @@ export type MyPageResponse = ApiResponse<MyPageData>;
 export type SignoutResponse = ApiResponse<string>;
 export type ActivitySummaryResponse = ApiResponse<ActivitySummary>;
 export type UpdateUserResponse = ApiResponse<string>;
-export type CheckEmailResponse = ApiResponse<string>;
 export type UserSearchResponse = ApiResponse<UserSearchResult>;

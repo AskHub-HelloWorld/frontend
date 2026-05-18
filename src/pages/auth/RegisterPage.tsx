@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, User, Building, Mail, Lock, Calendar, Briefcase } from 'lucide-react';
 import { motion } from 'motion/react';
 import { signup } from '../../services/authService';
-import { checkEmail } from '../../services/userService';
+import { checkEmail } from '../../services/authService';
 import type { Position } from '../../types/auth';
 
 export const RegisterPage = () => {
