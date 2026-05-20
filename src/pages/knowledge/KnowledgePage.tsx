@@ -18,6 +18,7 @@ import { getPosts, getUnresolvedPosts, getMyPosts, searchPosts, getPostsByCatego
 import type { PostItem, Category } from '../../types/post';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatDate, formatDateTime } from '../../utils/time'
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -67,8 +68,8 @@ const PostCard = ({ post }: { post: PostItem }) => {
             <span className="text-xs font-medium text-text-secondary">{post.writer}</span>
             <span className="text-text-muted mx-1">•</span>
             <span className="text-xs text-text-muted">
-              {new Date(post.createdAt).toLocaleDateString()}{' '}
-              {new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {formatDate(post.createdAt)}
+              {formatDateTime(post.createdAt)}    
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-text-muted hover:text-primary transition-colors">

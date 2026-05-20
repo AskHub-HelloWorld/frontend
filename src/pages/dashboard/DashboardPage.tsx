@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Lightbulb, ShoppingBag, ArrowUpRight, TrendingUp, Award } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockPosts } from '../../mock/data';
+import { getPosts } from '../../services/postService';
+import type { PostItem } from '../../types/post';
 import { motion } from 'motion/react';
+import { formatDate, formatDateTime } from '../../utils/time';
 
 const QuickActionCard = ({ title, description, icon: Icon, to, color }: any) => (
   <Link to={to}>
@@ -27,6 +30,24 @@ export const DashboardPage = () => {
   const { user } = useAuth();
   const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 
+  const [recentPosts, setRecentPosts] = useState<PostItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchRecentPosts = async () => {
+      setIsLoading(true);
+      try {
+        const result = await getPosts({ page: 0, size: 6 });
+        setRecentPosts(result.content);
+      } catch {
+        console.error('게시글 로딩 실패');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchRecentPosts();
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
@@ -47,7 +68,7 @@ export const DashboardPage = () => {
           </div>
           <div>
             <p className="text-xs text-text-muted font-bold uppercase tracking-wider leading-none mb-1">내 포인트</p>
-            <p className="text-lg font-heading font-bold text-text-primary">{user?.point.toLocaleString()} P</p>
+            <p className="text-lg font-heading font-bold text-text-primary">{user?.point?.toLocaleString() ?? 0} P</p>
           </div>
         </div>
       </section>
@@ -78,7 +99,7 @@ export const DashboardPage = () => {
       </section>
 
       <div className="grid grid-cols-1 gap-8">
-        {/* Recent Knowledge Posts */}
+        {/* 실시간 지식인 */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
@@ -86,37 +107,47 @@ export const DashboardPage = () => {
             </h2>
             <Link to="/knowledge" className="text-sm text-text-muted hover:text-primary transition-colors">더보기</Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {mockPosts.map((post) => (
-              <motion.div 
-                key={post.id}
-                whileHover={{ y: -2 }}
-                className="glass-card p-4 flex items-center gap-4 group cursor-pointer h-full"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {post.isResolved && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/10 text-success border border-success/20 shrink-0">해결됨</span>
-                    )}
-                    <h3 className="text-sm font-semibold text-text-primary truncate group-hover:text-primary transition-colors">{post.title}</h3>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-text-muted">
-                    <span>{post.author}</span>
-                    <span>•</span>
-                    <span>{post.department}</span>
-                    <span>•</span>
-                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-text-secondary flex items-center gap-1 justify-end">
-                    <MessageSquare size={14} />
-                    <span className="text-xs font-medium">{post.comments}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+
+          {isLoading ? (
+            <div className="text-center py-10 text-text-muted text-sm">불러오는 중...</div>
+          ) : recentPosts.length === 0 ? (
+            <div className="text-center py-10 text-text-muted text-sm">게시글이 없습니다.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {recentPosts.map((post) => (
+                <Link key={post.postId} to={`/knowledge/post/${post.postId}`}>
+                  <motion.div 
+                    whileHover={{ y: -2 }}
+                    className="glass-card p-4 flex items-center gap-4 group cursor-pointer h-full"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {post.isResolved && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/10 text-success border border-success/20 shrink-0">해결됨</span>
+                        )}
+                        <h3 className="text-sm font-semibold text-text-primary truncate group-hover:text-primary transition-colors">
+                          {post.title}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-text-muted">
+                        <span>{post.writer}</span>
+                        <span>•</span>
+                        <span>{post.position}</span>
+                        <span>•</span>
+                        <span>{formatDate(post.createdAt)}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-text-secondary flex items-center gap-1 justify-end">
+                        <MessageSquare size={14} />
+                        <span className="text-xs font-medium">{post.commentCount}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>

@@ -16,6 +16,7 @@ import type { PostDetail } from '../../types/post';
 import type { CommentItem } from '../../types/comment';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatDate, formatDateTime } from '../../utils/time';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -210,7 +211,8 @@ export const PostDetailPage = () => {
               <div>
                 <p className="text-sm font-bold text-text-primary">{post.writer}</p>
                 <p className="text-xs text-text-muted">
-                  {new Date(post.createdAt).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  {formatDate(post.createdAt)}
+                  {formatDateTime(post.createdAt)}
                 </p>
               </div>
             </div>
