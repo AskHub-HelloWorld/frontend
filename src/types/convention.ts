@@ -1,1 +1,0 @@
-//convention type정의
