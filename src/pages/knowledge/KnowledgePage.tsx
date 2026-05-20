@@ -13,7 +13,6 @@ import {
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAuth } from '../../context/AuthContext';
 import { getPosts, getUnresolvedPosts, getMyPosts, searchPosts, getPostsByCategory } from '../../services/postService';
 import type { PostItem, Category } from '../../types/post';
 import { clsx, type ClassValue } from 'clsx';
@@ -80,7 +79,6 @@ const PostCard = ({ post }: { post: PostItem }) => {
 };
 
 export const KnowledgePage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [filter, setFilter] = useState('전체');

@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getPosts } from '../../services/postService';
 import type { PostItem } from '../../types/post';
 import { motion } from 'motion/react';
-import { formatDate, formatDateTime } from '../../utils/time';
+import { formatDate } from '../../utils/time';
 
 const QuickActionCard = ({ title, description, icon: Icon, to, color }: any) => (
   <Link to={to}>
