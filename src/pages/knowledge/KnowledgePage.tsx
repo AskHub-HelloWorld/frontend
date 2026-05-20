@@ -18,7 +18,7 @@ import { getPosts, getUnresolvedPosts, getMyPosts, searchPosts, getPostsByCatego
 import type { PostItem, Category } from '../../types/post';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { formatDate, formatDateTime } from '../../utils/time'
+import { formatDate } from '../../utils/time';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -67,10 +67,7 @@ const PostCard = ({ post }: { post: PostItem }) => {
             </div>
             <span className="text-xs font-medium text-text-secondary">{post.writer}</span>
             <span className="text-text-muted mx-1">•</span>
-            <span className="text-xs text-text-muted">
-              {formatDate(post.createdAt)}
-              {formatDateTime(post.createdAt)}    
-            </span>
+            <span className="text-xs text-text-muted">{formatDate(post.createdAt)}</span>
           </div>
           <div className="flex items-center gap-1.5 text-text-muted hover:text-primary transition-colors">
             <MessageSquare size={14} />
@@ -94,11 +91,12 @@ export const KnowledgePage = () => {
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [myPosts, setMyPosts] = useState<PostItem[]>([]);
 
   const itemsPerPage = 5;
-
   const categories: Category[] = ['FRONTEND', 'BACKEND', 'AI', 'DESIGNER', 'FULLSTACK', 'SECURITY', 'UNKNOWN', 'OTHER'];
 
+  // 게시글 목록 fetch
   const fetchPosts = async () => {
     setIsLoading(true);
     try {
@@ -125,6 +123,19 @@ export const KnowledgePage = () => {
       setIsLoading(false);
     }
   };
+
+  // 사이드바 내가 쓴 글 fetch
+  useEffect(() => {
+    const fetchMyPosts = async () => {
+      try {
+        const result = await getMyPosts({ page: 0, size: 5 });
+        setMyPosts(result.content);
+      } catch {
+        console.error('내가 쓴 글 로딩 실패');
+      }
+    };
+    fetchMyPosts();
+  }, []);
 
   useEffect(() => {
     fetchPosts();
@@ -308,9 +319,9 @@ export const KnowledgePage = () => {
               </button>
             </div>
             <div className="space-y-4">
-              {user?.myPostList && user.myPostList.length > 0 ? (
-                user.myPostList.slice(0, 5).map((p, index) => (
-                  <div key={index} className="block group">
+              {myPosts.length > 0 ? (
+                myPosts.map((p) => (
+                  <Link key={p.postId} to={`/knowledge/post/${p.postId}`} className="block group">
                     <div className="p-2 -mx-2 rounded-xl border border-transparent hover:border-border hover:bg-bg-elevated transition-all">
                       <div className="flex items-center gap-2 mb-1.5">
                         {p.isResolved ? (
@@ -321,14 +332,14 @@ export const KnowledgePage = () => {
                         <p className="text-xs font-bold text-text-primary group-hover:text-primary truncate flex-1">{p.title}</p>
                       </div>
                       <div className="flex items-center justify-between text-[9px] text-text-muted font-medium">
-                        <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                        <span>{formatDate(p.createdAt)}</span>
                         <div className="flex items-center gap-1">
                           <MessageSquare size={10} />
                           <span>{p.commentCount}</span>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <p className="text-xs text-text-muted py-2">작성한 글이 없습니다.</p>

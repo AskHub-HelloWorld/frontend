@@ -243,7 +243,7 @@ export const PostDetailPage = () => {
               <span>•</span>
               <span>{post.resolvedComment.position}</span>
               <span>•</span>
-              <span>{new Date(post.resolvedComment.createdAt).toLocaleDateString()}</span>
+              <span>{formatDateTime(post.resolvedComment.createdAt)}</span>
             </div>
           </div>
         )}
@@ -299,7 +299,7 @@ export const PostDetailPage = () => {
                         )}
                       </div>
                       <p className="text-[10px] text-text-muted">
-                        {new Date(comment.createdAt).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        {formatDateTime(comment.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -367,13 +367,7 @@ export const PostDetailPage = () => {
               />
               <div className="flex items-center justify-between p-3 bg-bg-base/50 rounded-b-lg border-t border-border">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isAnonymous}
-                    onChange={(e) => setIsAnonymous(e.target.checked)}
-                    className="w-4 h-4 accent-primary"
-                  />
-                  <span className="text-[10px] text-text-muted font-medium">익명으로 등록</span>
+                
                 </label>
                 <button
                   onClick={handleSubmitComment}
