@@ -1,5 +1,6 @@
 //Team API 구현
 import api from './api';
+import qs from 'qs';
 import type {
   CreateTeamData,
   TeamDetail,
@@ -19,19 +20,15 @@ export const createTeam = async (
   files?: File[]
 ): Promise<CreateTeamData> => {
   const formData = new FormData();
+  
   if (files && files.length > 0) {
     files.forEach(file => formData.append('multipartFileList', file));
-  } else {
-
-    formData.append('multipartFileList', new Blob([]), '');
   }
 
   const { data } = await api.post<CreateTeamResponse>('/api/teams', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    params: {
-      name,
-      userIds,  
-    },
+    params: { name, userIds },
+    paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' }),
   });
   return data.data;
 };

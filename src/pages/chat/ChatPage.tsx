@@ -27,6 +27,7 @@ import type { UserSearchItem } from '../../types/user';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -37,8 +38,6 @@ export const ChatPage = () => {
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [selectedSession, setSelectedSession] = useState<SessionItem | null>(null);
   const [messages, setMessages] = useState<MessageItem[]>([]);
-  const [ setHasNextMessage] = useState(false);
-  const [ setMessagePage] = useState(0);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
@@ -140,7 +139,7 @@ export const ChatPage = () => {
         }
       });
       // 전송 후 메시지 목록 새로고침
-      const result = await getMessages(selectedSession.sessionId, { page: 0, size: 50 });
+      const result = await getMessages(selectedSession.sessionId, { page: 0, size: 20 });
       setMessages(result.content);
     } catch {
       console.error('메시지 전송 실패');
