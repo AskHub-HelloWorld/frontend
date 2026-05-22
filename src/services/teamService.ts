@@ -3,7 +3,6 @@ import api from './api';
 import type {
   CreateTeamData,
   TeamDetail,
-  ConventionDownloadData,
   InviteUsersRequest,
   CreateTeamResponse,
   TeamDetailResponse,
@@ -20,14 +19,19 @@ export const createTeam = async (
   files?: File[]
 ): Promise<CreateTeamData> => {
   const formData = new FormData();
-  formData.append('name', name);
-  userIds.forEach(id => formData.append('userIds', String(id)));
-  if (files) {
+  if (files && files.length > 0) {
     files.forEach(file => formData.append('multipartFileList', file));
+  } else {
+
+    formData.append('multipartFileList', new Blob([]), '');
   }
 
   const { data } = await api.post<CreateTeamResponse>('/api/teams', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    params: {
+      name,
+      userIds,  
+    },
   });
   return data.data;
 };
