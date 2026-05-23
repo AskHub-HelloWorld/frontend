@@ -118,35 +118,41 @@ export const ChatPage = () => {
   }, [messages, isTyping]);
 
   // 메시지 전송
-  const handleSend = async () => {
-    if (!inputValue.trim() || !selectedSession) return;
+const handleSend = async () => {
+  if (!inputValue.trim() || !selectedSession) return;
 
-    const tempUserMsg: MessageItem = {
-      messageId: Date.now(),
-      content: inputValue,
-    };
-
-    setMessages(prev => [...prev, tempUserMsg]);
-    setInputValue('');
-    setIsTyping(true);
-
-    try {
-      await sendMessage({
-        request: {
-          sessionId: selectedSession.sessionId,
-          teamId: selectedSession.teamId,
-          message: inputValue,
-        }
-      });
-      // 전송 후 메시지 목록 새로고침
-      const result = await getMessages(selectedSession.sessionId, { page: 0, size: 20 });
-      setMessages(result.content);
-    } catch {
-      console.error('메시지 전송 실패');
-    } finally {
-      setIsTyping(false);
-    }
+  const tempUserMsg: MessageItem = {
+    messageId: Date.now(),
+    content: inputValue,
+    role: 'ASKER',
   };
+
+  setMessages(prev => [...prev, tempUserMsg]);
+  setInputValue('');
+  setIsTyping(true);
+
+  try {
+    await sendMessage({
+      sessionId: selectedSession.sessionId,
+      teamId: selectedSession.teamId,
+      message: inputValue,
+      // files: selectedFiles
+    });
+
+    // 전송 후 메시지 목록 새로고침
+    const result = await getMessages(
+      selectedSession.sessionId,
+      { page: 0, size: 20 }
+    );
+
+    setMessages(result.content);
+
+  } catch (error) {
+    console.error('메시지 전송 실패', error);
+  } finally {
+    setIsTyping(false);
+  }
+};
 
   // 멤버 검색 (회사명 기준)
 const [isSearchingUsers, setIsSearchingUsers] = useState(false);
@@ -613,12 +619,12 @@ useEffect(() => {
                       <Sparkles size={32} />
                     </div>
                     <h3 className="text-lg font-bold mb-2">무엇을 도와드릴까요?</h3>
-                    <p className="text-xs text-text-muted">사내 지식 베이스를 활용하여 정교한 답변을 드립니다.</p>
+                    <p className="text-xs text-text-muted">공유 파일을 활용하여 AI가 답변을 드립니다.</p>
                   </div>
                 )}
-                {messages.map((msg, index) => {
-                  // messageId 기준 홀수 = 유저, 짝수 = AI (index 기반으로 구분)
-                  const isUserMsg = index % 2 === 0;
+                {messages.map((msg) => {
+                  // message role기준 변경
+                 const isUserMsg = msg.role === 'ASKER';
                   return (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
@@ -684,7 +690,7 @@ useEffect(() => {
                             "p-2.5 rounded-xl transition-all",
                             isHost ? "text-text-muted hover:text-primary hover:bg-primary/10" : "text-text-muted/30 cursor-not-allowed"
                           )}
-                          title={isHost ? "파일 업로드" : "방장만 파일 업로드가 가능합니다"}
+                          title={isHost ? "파일 업로드" : "파일 업로드는 방장만 가능합니다"}
                         >
                           <Paperclip size={20} />
                           {!isHost && <Shield size={10} className="absolute bottom-1 right-1 text-danger" />}
@@ -700,7 +706,7 @@ useEffect(() => {
                           }
                         }}
                         className="flex-1 bg-transparent border-none focus:ring-0 p-2.5 text-sm max-h-32 min-h-[44px] resize-none text-text-primary scrollbar-hide"
-                        placeholder={isTyping ? "AI가 답변을 준비 중입니다..." : "AI 답변을 맹신하지 마세요. 무엇이든 물어보세요..."}
+                        placeholder={isTyping ? "AI가 답변을 준비 중입니다..." : "AI에게 무엇이든 물어보세요"}
                         disabled={isTyping}
                       />
                       <div className="flex items-center gap-2 p-1">

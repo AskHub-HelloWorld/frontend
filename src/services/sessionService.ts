@@ -19,8 +19,34 @@ const toPageParams = (pageable: PageRequest) => ({
 });
 
 // 1. 메시지 보내기
-export const sendMessage = async (body: SendMessageRequest): Promise<SendMessageData> => {
-  const { data } = await api.post<SendMessageResponse>('/api/sessions/messages', body);
+export const sendMessage = async (
+  body: SendMessageRequest
+): Promise<SendMessageData> => {
+
+  const formData = new FormData();
+
+  // files 추가
+  if (body.files) {
+    body.files.forEach(file => {
+      formData.append('files', file);
+    });
+  }
+
+  const { data } = await api.post<SendMessageResponse>(
+    '/api/sessions/messages',
+    formData,
+    {
+      params: {
+        teamId: body.teamId,
+        sessionId: body.sessionId,
+        message: body.message,
+      },
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+
   return data.data;
 };
 

@@ -1,20 +1,27 @@
 import type { ApiResponse } from './auth';
 import type { PageData, PageRequest } from './post';
 
+// 메시지 역할
+export type MessageRole = 'ASKER' | 'AI';
+
+// 메시지 응답 아이템
+export interface MessageResponseItem {
+  messageId: number;
+  role: MessageRole;
+}
+
 // 메시지 전송 응답
 export interface SendMessageData {
-  requestMessageId: number;
-  responseMessageId: number;
+  asker: MessageResponseItem;
+  replier: MessageResponseItem;
 }
 
 // 메시지 전송 요청
 export interface SendMessageRequest {
-  files?: string[];
-  request: {
-    sessionId: number;
-    teamId: number;
-    message: string;
-  };
+  sessionId: number;
+  teamId: number;
+  message: string;
+  files?: File[];
 }
 
 // 세션 목록 아이템
@@ -30,6 +37,7 @@ export interface SessionItem {
 export interface MessageItem {
   messageId: number;
   content: string;
+  role: MessageRole;
 }
 
 // ApiResponse 타입 별칭
