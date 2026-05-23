@@ -221,9 +221,10 @@ export const ChatPage = () => {
 
   // 컨벤션 파일 추가
   const handleAddConvention = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectedSession || !e.target.files?.[0]) return;
+    if (!selectedSession || !e.target.files?.length) return;
     try {
-      await addConvention(selectedSession.teamId, e.target.files[0]);
+      const files = Array.from(e.target.files);
+      await addConvention(selectedSession.teamId, files);
       const detail = await getTeamDetail(selectedSession.teamId);
       setTeamDetail(detail);
     } catch {

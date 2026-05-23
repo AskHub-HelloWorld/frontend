@@ -34,16 +34,16 @@ export const createTeam = async (
 };
 
 // 2. 컨벤션 파일 추가 (방장만)
-export const addConvention = async (teamId: number, file: File): Promise<number> => {
+export const addConvention = async (teamId: number, files: File[]): Promise<string> => {
   const formData = new FormData();
-  formData.append('file', file);
+  files.forEach(file => formData.append('files', file));
 
   const { data } = await api.post<AddConventionResponse>(
     `/api/teams/${teamId}/conventions`,
     formData,
     { headers: { 'Content-Type': 'multipart/form-data' } }
   );
-  return data.data; // conventionId 반환
+  return data.data;
 };
 
 // 3. 참여자 초대 (세션 생성)

@@ -28,7 +28,7 @@ export interface InviteUsersRequest {
 // ApiResponse 타입 별칭
 export type CreateTeamResponse = ApiResponse<CreateTeamData>;
 export type TeamDetailResponse = ApiResponse<TeamDetail>;
-export type AddConventionResponse = ApiResponse<number>;        // conventionId 반환
+export type AddConventionResponse = ApiResponse<string>;
 export type InviteUsersResponse = ApiResponse<string>;
 export type ConventionDownloadResponse = ApiResponse<ConventionDownloadData>;
 export type DeleteConventionResponse = ApiResponse<string>;
