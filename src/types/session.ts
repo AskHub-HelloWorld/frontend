@@ -2,18 +2,18 @@ import type { ApiResponse } from './auth';
 import type { PageData, PageRequest } from './post';
 
 // 메시지 역할
-export type MessageRole = 'ASKER' | 'AI';
+export type MessageRole = 'ASKER' | 'REPLIER';
 
-// 메시지 응답 아이템
-export interface MessageResponseItem {
+// 메시지 단일 아이템 (전송 응답용)
+export interface MessageRoleItem {
   messageId: number;
   role: MessageRole;
 }
 
 // 메시지 전송 응답
 export interface SendMessageData {
-  asker: MessageResponseItem;
-  replier: MessageResponseItem;
+  asker: MessageRoleItem;
+  replier: MessageRoleItem;
 }
 
 // 메시지 전송 요청
@@ -33,11 +33,13 @@ export interface SessionItem {
   captainName: string;
 }
 
-// 메시지 아이템
+// 메시지 목록 아이템 - response 안에 messageId, role
 export interface MessageItem {
-  messageId: number;
-  content: string;
-  role: MessageRole;
+  response: {
+    messageId: number;
+    role: MessageRole;
+    content : string ;
+  };
 }
 
 // ApiResponse 타입 별칭
@@ -46,5 +48,4 @@ export type SessionListResponse = ApiResponse<PageData<SessionItem>>;
 export type MessageListResponse = ApiResponse<PageData<MessageItem>>;
 export type DeleteSessionResponse = ApiResponse<string>;
 
-// PageRequest 재사용
 export type { PageRequest };

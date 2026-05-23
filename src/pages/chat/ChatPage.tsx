@@ -29,7 +29,6 @@ import { twMerge } from 'tailwind-merge';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -45,8 +44,6 @@ export const ChatPage = () => {
   const [showParticipants, setShowParticipants] = useState(false);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
-
-  // 팀 상세 (참여자, 파일 등)
   const [teamDetail, setTeamDetail] = useState<any>(null);
 
   // 새 채팅방 모달
@@ -57,6 +54,7 @@ export const ChatPage = () => {
   const [memberSearch, setMemberSearch] = useState('');
   const [availableUsers, setAvailableUsers] = useState<UserSearchItem[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,9 +85,10 @@ export const ChatPage = () => {
     fetchSessions();
   }, []);
 
-  // 메시지 목록 조회
+  // 메시지 + 팀 상세 조회
   useEffect(() => {
     if (!selectedSession) return;
+
     const fetchMessages = async () => {
       try {
         const result = await getMessages(selectedSession.sessionId, { page: 0, size: 50 });
@@ -120,68 +119,62 @@ export const ChatPage = () => {
   }, [messages, isTyping]);
 
   // 메시지 전송
-const handleSend = async () => {
-  if (!inputValue.trim() || !selectedSession) return;
+  const handleSend = async () => {
+    if (!inputValue.trim() || !selectedSession) return;
 
-  const tempUserMsg: MessageItem = {
-    messageId: Date.now(),
-    content: inputValue,
-    role: 'ASKER',
-  };
+    // 임시 유저 메시지 (낙관적 업데이트)
+    const tempUserMsg: MessageItem = {
+      response: {
+        messageId: Date.now(),
+        content: inputValue,
+        role: 'ASKER',
+      }
+    };
 
-  setMessages(prev => [...prev, tempUserMsg]);
-  setInputValue('');
-  setIsTyping(true);
+    setMessages(prev => [...prev, tempUserMsg]);
+    setInputValue('');
+    setIsTyping(true);
 
-  try {
-    await sendMessage({
-      sessionId: selectedSession.sessionId,
-      teamId: selectedSession.teamId,
-      message: inputValue,
-      // files: selectedFiles
-    });
-
-    // 전송 후 메시지 목록 새로고침
-    const result = await getMessages(
-      selectedSession.sessionId,
-      { page: 0, size: 20 }
-    );
-
-    setMessages(result.content);
-
-  } catch (error) {
-    console.error('메시지 전송 실패', error);
-  } finally {
-    setIsTyping(false);
-  }
-};
-
-  // 멤버 검색 (회사명 기준)
-const [isSearchingUsers, setIsSearchingUsers] = useState(false);
-
-useEffect(() => {
-  if (!isModalOpen || !user?.company) return;
-
-  const fetchUsers = async () => {
-    setIsSearchingUsers(true);
     try {
-      const result = await searchUsersByCompany(user.company);
-      const filtered = result.userList.filter(u => u.name !== user.name);
-      // 검색어 있으면 프론트에서 필터링
-      setAvailableUsers(
-        memberSearch.trim()
-          ? filtered.filter(u => u.name.includes(memberSearch))
-          : filtered
-      );
-    } catch {
-      console.error('유저 검색 실패');
+      await sendMessage({
+        sessionId: selectedSession.sessionId,
+        teamId: selectedSession.teamId,
+        message: inputValue,
+      });
+
+      // 전송 후 메시지 목록 새로고침
+      const result = await getMessages(selectedSession.sessionId, { page: 0, size: 50 });
+      setMessages(result.content);
+    } catch (error) {
+      console.error('메시지 전송 실패', error);
     } finally {
-      setIsSearchingUsers(false);
+      setIsTyping(false);
     }
   };
 
-  fetchUsers();
-}, [isModalOpen, memberSearch]);
+  // 멤버 검색
+  useEffect(() => {
+    if (!isModalOpen || !user?.company) return;
+
+    const fetchUsers = async () => {
+      setIsSearchingUsers(true);
+      try {
+        const result = await searchUsersByCompany(user.company);
+        const filtered = result.userList.filter(u => u.name !== user.name);
+        setAvailableUsers(
+          memberSearch.trim()
+            ? filtered.filter(u => u.name.includes(memberSearch))
+            : filtered
+        );
+      } catch {
+        console.error('유저 검색 실패');
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, [isModalOpen, memberSearch]);
 
   // 팀 생성
   const handleCreateRoom = async () => {
@@ -189,12 +182,14 @@ useEffect(() => {
     setIsCreating(true);
     try {
       const userIds = selectedMembers.map(m => m.userId);
-      const { teamId, sessionId } = await createTeam(newRoomTitle, userIds, attachedFiles.length > 0 ? attachedFiles : undefined);
+      const { teamId, sessionId } = await createTeam(
+        newRoomTitle,
+        userIds,
+        attachedFiles.length > 0 ? attachedFiles : undefined
+      );
 
-      // 생성 후 세션 목록 새로고침
       await fetchSessions();
 
-      // 생성된 세션으로 이동
       const newSession: SessionItem = {
         teamId,
         sessionId,
@@ -265,6 +260,7 @@ useEffect(() => {
     setSelectedMembers([]);
     setAttachedFiles([]);
     setMemberSearch('');
+    setAvailableUsers([]);
   };
 
   const toggleMemberSelection = (member: UserSearchItem) => {
@@ -373,45 +369,44 @@ useEffect(() => {
                         className="w-full bg-bg-elevated border border-border rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-primary"
                       />
                       {isSearchingUsers && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                      </div>
-                    )}
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                      {availableUsers
-                        .map(member => {
-                          const isSelected = selectedMembers.find(m => m.userId === member.userId);
-                          return (
-                            <div 
-                              key={member.userId}
-                              onClick={() => toggleMemberSelection(member)}
-                              className={cn(
-                                "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group",
-                                isSelected ? "bg-primary/10 border-primary shadow-sm" : "bg-bg-elevated border-border hover:bg-bg-elevated/80"
-                              )}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={cn(
-                                  "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ring-2 ring-white",
-                                  isSelected ? "bg-primary text-white" : "bg-bg-surface text-text-secondary"
-                                )}>
-                                  {member.name.charAt(0)}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-[12px] font-bold">{member.name}</p>
-                                  <p className="text-[10px] text-text-muted">{member.position}</p>
-                                </div>
-                              </div>
+                      {availableUsers.map(member => {
+                        const isSelected = selectedMembers.find(m => m.userId === member.userId);
+                        return (
+                          <div 
+                            key={member.userId}
+                            onClick={() => toggleMemberSelection(member)}
+                            className={cn(
+                              "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group",
+                              isSelected ? "bg-primary/10 border-primary shadow-sm" : "bg-bg-elevated border-border hover:bg-bg-elevated/80"
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
                               <div className={cn(
-                                "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
-                                isSelected ? "bg-primary border-primary" : "border-border bg-white"
+                                "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ring-2 ring-white",
+                                isSelected ? "bg-primary text-white" : "bg-bg-surface text-text-secondary"
                               )}>
-                                {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                                {member.name.charAt(0)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[12px] font-bold">{member.name}</p>
+                                <p className="text-[10px] text-text-muted">{member.position}</p>
                               </div>
                             </div>
-                          );
-                        })}
+                            <div className={cn(
+                              "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                              isSelected ? "bg-primary border-primary" : "border-border bg-white"
+                            )}>
+                              {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -483,7 +478,6 @@ useEffect(() => {
                           <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                             <MessageSquare size={20} />
                           </div>
-                          {/* 방장만 삭제 버튼 표시 */}
                           {session.captainName === user?.name && (
                             <button
                               onClick={(e) => handleDeleteSession(e, session.sessionId)}
@@ -533,7 +527,6 @@ useEffect(() => {
                 <h3 className="text-sm font-bold flex items-center gap-2">
                   <File size={16} className="text-primary" /> 공유 파일
                 </h3>
-                {/* 방장만 파일 추가 가능 */}
                 {isHost && (
                   <button
                     onClick={() => conventionFileRef.current?.click()}
@@ -615,7 +608,7 @@ useEffect(() => {
 
               {/* 메시지 목록 */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
-                {messages.length === 0 && (
+                {messages.length === 0 && !isTyping && (
                   <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto">
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
                       <Sparkles size={32} />
@@ -624,14 +617,18 @@ useEffect(() => {
                     <p className="text-xs text-text-muted">공유 파일을 활용하여 AI가 답변을 드립니다.</p>
                   </div>
                 )}
+
+                {/* ✅ response 중첩 구조로 수정 */}
                 {messages.map((msg) => {
-                  // message role기준 변경
-                 const isUserMsg = msg.role === 'ASKER';
+                  const isUserMsg = msg.response.role === 'ASKER';
+                  const content = msg.response.content;
+                  const messageId = msg.response.messageId;
+
                   return (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      key={msg.messageId}
+                      key={messageId}
                       className={cn("flex flex-col", isUserMsg ? "items-end" : "items-start")}
                     >
                       {!isUserMsg && (
@@ -653,14 +650,34 @@ useEffect(() => {
                         </div>
                         <div className="space-y-2">
                           <div className={cn(
-                            "p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
+                            "p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
                             isUserMsg
-                              ? "bg-bg-elevated border border-primary/20 text-text-primary rounded-tr-none"
+                              ? "bg-bg-elevated border border-primary/20 text-text-primary rounded-tr-none whitespace-pre-wrap"
                               : "bg-primary text-white shadow-lg shadow-primary/20 rounded-tl-none"
                           )}>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {msg.content}
-                            </ReactMarkdown>
+                            {isUserMsg ? (
+                              content
+                            ) : (
+                              // ✅ AI 메시지만 마크다운 렌더링
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                  ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                                  code: ({ children }) => (
+                                    <code className="bg-white/20 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                                  ),
+                                  pre: ({ children }) => (
+                                    <pre className="bg-white/20 p-3 rounded-lg text-xs font-mono overflow-x-auto mb-2">{children}</pre>
+                                  ),
+                                  strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                }}
+                              >
+                                {content}
+                              </ReactMarkdown>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -11,7 +11,6 @@ import type {
 } from '../types/session';
 import type { PageData, PageRequest } from '../types/post';
 
-// 공통 pageable 파라미터 변환
 const toPageParams = (pageable: PageRequest) => ({
   page: pageable.page,
   size: pageable.size,
@@ -19,17 +18,11 @@ const toPageParams = (pageable: PageRequest) => ({
 });
 
 // 1. 메시지 보내기
-export const sendMessage = async (
-  body: SendMessageRequest
-): Promise<SendMessageData> => {
-
+export const sendMessage = async (body: SendMessageRequest): Promise<SendMessageData> => {
   const formData = new FormData();
 
-  // files 추가
-  if (body.files) {
-    body.files.forEach(file => {
-      formData.append('files', file);
-    });
+  if (body.files && body.files.length > 0) {
+    body.files.forEach(file => formData.append('files', file));
   }
 
   const { data } = await api.post<SendMessageResponse>(
@@ -41,12 +34,9 @@ export const sendMessage = async (
         sessionId: body.sessionId,
         message: body.message,
       },
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     }
   );
-
   return data.data;
 };
 
@@ -76,10 +66,7 @@ export const searchSessions = async (
   pageable: PageRequest
 ): Promise<PageData<SessionItem>> => {
   const { data } = await api.get<SessionListResponse>('/api/sessions/search', {
-    params: {
-      keyword,
-      ...toPageParams(pageable),
-    },
+    params: { keyword, ...toPageParams(pageable) },
   });
   return data.data;
 };
