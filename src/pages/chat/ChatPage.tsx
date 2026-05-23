@@ -26,6 +26,8 @@ import type { SessionItem, MessageItem } from '../../types/session';
 import type { UserSearchItem } from '../../types/user';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 
 function cn(...inputs: ClassValue[]) {
@@ -656,7 +658,9 @@ useEffect(() => {
                               ? "bg-bg-elevated border border-primary/20 text-text-primary rounded-tr-none"
                               : "bg-primary text-white shadow-lg shadow-primary/20 rounded-tl-none"
                           )}>
-                            {msg.content}
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {msg.content}
+                            </ReactMarkdown>
                           </div>
                         </div>
                       </div>
