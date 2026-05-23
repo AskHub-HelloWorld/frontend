@@ -56,6 +56,14 @@ export const ChatPage = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
 
+  //참여자 추가 상태
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteMembers, setInviteMembers] = useState<UserSearchItem[]>([]);
+  const [inviteSearch, setInviteSearch] = useState('');
+  const [inviteUsers, setInviteUsers] = useState<UserSearchItem[]>([]);
+  const [isInviting, setIsInviting] = useState(false);
+  const [isSearchingInviteUsers, setIsSearchingInviteUsers] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const conventionFileRef = useRef<HTMLInputElement>(null);
@@ -176,6 +184,34 @@ export const ChatPage = () => {
     fetchUsers();
   }, [isModalOpen, memberSearch]);
 
+  //초대 유저 검색
+  useEffect(() => {
+  if (!isInviteModalOpen || !user?.company) return;
+
+  const fetchInviteUsers = async () => {
+    setIsSearchingInviteUsers(true);
+    try {
+      const result = await searchUsersByCompany(user.company);
+      // 이미 참여 중인 팀원 제외
+      const alreadyIn = teamDetail?.userNameList || [];
+      const filtered = result.userList.filter(
+        u => u.name !== user.name && !alreadyIn.includes(u.name)
+      );
+      setInviteUsers(
+        inviteSearch.trim()
+          ? filtered.filter(u => u.name.includes(inviteSearch))
+          : filtered
+      );
+    } catch {
+      console.error('유저 검색 실패');
+    } finally {
+      setIsSearchingInviteUsers(false);
+    }
+  };
+
+  fetchInviteUsers();
+}, [isInviteModalOpen, inviteSearch]);
+
   // 팀 생성
   const handleCreateRoom = async () => {
     if (!newRoomTitle.trim()) return;
@@ -218,6 +254,29 @@ export const ChatPage = () => {
       alert('삭제에 실패했습니다.');
     }
   };
+
+  //참여자 추가
+  const handleInvite = async () => {
+  if (!selectedSession || inviteMembers.length === 0) return;
+  setIsInviting(true);
+  try {
+    const { inviteUsers: inviteAPI } = await import('../../services/teamService');
+    await inviteAPI({
+      teamId: selectedSession.teamId,
+      userIds: inviteMembers.map(m => m.userId),
+    });
+    // 팀 정보 새로고침
+    const detail = await getTeamDetail(selectedSession.teamId);
+    setTeamDetail(detail);
+    setIsInviteModalOpen(false);
+    setInviteMembers([]);
+    setInviteSearch('');
+  } catch {
+    alert('초대에 실패했습니다.');
+  } finally {
+    setIsInviting(false);
+  }
+};
 
   // 컨벤션 파일 추가
   const handleAddConvention = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,6 +322,9 @@ export const ChatPage = () => {
     setMemberSearch('');
     setAvailableUsers([]);
   };
+
+  //채팅방 참여자 추가하기
+  
 
   const toggleMemberSelection = (member: UserSearchItem) => {
     if (selectedMembers.find(m => m.userId === member.userId)) {
@@ -800,12 +862,149 @@ export const ChatPage = () => {
                         <Trash2 size={14} /> 방 삭제하기
                       </button>
                     )}
-                    <button className="w-full btn-outline h-9 text-xs rounded-xl flex items-center justify-center gap-2">
-                      <Plus size={14} /> 참여자 초대하기
+                    <button
+                      onClick={() => {
+                        if (isHost) {
+                          setIsInviteModalOpen(true);
+                        }
+                      }}
+                      disabled={!isHost}
+                      className={cn(
+                        "w-full h-9 text-xs rounded-xl flex items-center justify-center gap-2 transition-all",
+                        isHost
+                          ? "btn-outline hover:border-primary hover:text-primary"
+                          : "bg-bg-elevated text-text-muted/40 border border-border cursor-not-allowed opacity-60"
+                      )}
+                      title={isHost ? "참여자 초대" : "방장만 참여자를 초대할 수 있습니다"}
+                    >
+                      <Plus size={14} />
+                      참여자 초대하기
+
+                      {!isHost && (
+                        <Shield size={10} className="text-danger" />
+                      )}
                     </button>
                   </div>
                 </motion.div>
               )}
+              {/* 참여자 초대 모달 */}
+<AnimatePresence>
+  {isInviteModalOpen && (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={() => setIsInviteModalOpen(false)}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="relative w-full max-w-md bg-bg-surface border border-border rounded-3xl overflow-hidden shadow-2xl"
+      >
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-primary/20 text-primary flex items-center justify-center border border-primary/20">
+              <Users size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold">참여자 초대</h3>
+              <p className="text-xs text-text-muted mt-0.5">팀에 새 멤버를 초대하세요</p>
+            </div>
+          </div>
+
+          {/* 검색 */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
+            <input
+              type="text"
+              placeholder="이름 검색..."
+              value={inviteSearch}
+              onChange={(e) => setInviteSearch(e.target.value)}
+              className="w-full bg-bg-elevated border border-border rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-primary"
+            />
+            {isSearchingInviteUsers && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+
+          {/* 선택된 인원 수 */}
+          <div className="flex items-center justify-between px-1 mb-2">
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest">멤버 목록</span>
+            <span className="text-[10px] font-bold text-primary">{inviteMembers.length}명 선택됨</span>
+          </div>
+
+          {/* 유저 목록 */}
+          <div className="space-y-1 max-h-52 overflow-y-auto pr-1 mb-6">
+            {inviteUsers.length === 0 ? (
+              <p className="text-xs text-text-muted text-center py-6">초대할 수 있는 멤버가 없습니다.</p>
+            ) : (
+              inviteUsers.map(member => {
+                const isSelected = inviteMembers.find(m => m.userId === member.userId);
+                return (
+                  <div
+                    key={member.userId}
+                    onClick={() => {
+                      if (isSelected) {
+                        setInviteMembers(prev => prev.filter(m => m.userId !== member.userId));
+                      } else {
+                        setInviteMembers(prev => [...prev, member]);
+                      }
+                    }}
+                    className={cn(
+                      "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between",
+                      isSelected ? "bg-primary/10 border-primary" : "bg-bg-elevated border-border hover:bg-bg-elevated/80"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs",
+                        isSelected ? "bg-primary text-white" : "bg-bg-surface text-text-secondary"
+                      )}>
+                        {member.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold">{member.name}</p>
+                        <p className="text-[10px] text-text-muted">{member.position}</p>
+                      </div>
+                    </div>
+                    <div className={cn(
+                      "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                      isSelected ? "bg-primary border-primary" : "border-border bg-white"
+                    )}>
+                      {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* 버튼 */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => { setIsInviteModalOpen(false); setInviteMembers([]); setInviteSearch(''); }}
+              className="flex-1 btn-outline h-11 rounded-2xl text-sm"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleInvite}
+              disabled={inviteMembers.length === 0 || isInviting}
+              className="flex-[2] btn-primary h-11 rounded-2xl text-sm disabled:opacity-50"
+            >
+              {isInviting ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : `${inviteMembers.length}명 초대하기`}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )}
+</AnimatePresence>
             </AnimatePresence>
           </motion.div>
         )}
