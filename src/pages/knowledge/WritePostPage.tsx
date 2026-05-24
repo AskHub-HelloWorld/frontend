@@ -38,7 +38,6 @@ export const WritePostPage = () => {
   const [selectedPosition, setSelectedPosition] = useState<Category | ''>(
     editPost?.position || ''
   );
-  const [point, setPoint] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -52,7 +51,7 @@ export const WritePostPage = () => {
         content,
         isAnonymous,
         position: selectedPosition,
-        point,
+        point: 50,
       });
       navigate(`/knowledge/post/${postId}`); // 생성된 게시글 상세로 이동
     } catch (e: any) {
@@ -150,23 +149,6 @@ export const WritePostPage = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* 포인트 설정 */}
-              <div className="space-y-2">
-                <label className="block text-xs font-black text-text-muted uppercase tracking-widest ml-1">채택 포인트</label>
-                <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-bg-base">
-                  <input
-                    type="number"
-                    min={0}
-                    value={point}
-                    onChange={(e) => setPoint(Math.max(0, Number(e.target.value)))}
-                    className="w-full bg-transparent text-lg font-bold text-text-primary focus:outline-none"
-                    placeholder="0"
-                  />
-                  <span className="text-sm font-bold text-text-muted shrink-0">P</span>
-                </div>
-                <p className="text-[10px] text-text-muted ml-1">답변 채택 시 지급할 포인트를 설정하세요. (0P = 무설정)</p>
               </div>
             </div>
           </div>
