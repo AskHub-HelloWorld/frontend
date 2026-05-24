@@ -89,8 +89,11 @@ export const RegisterPage = () => {
     { value: 'FRONTEND', label: '프론트엔드' },
     { value: 'BACKEND', label: '백엔드' },
     { value: 'DESIGNER', label: '디자인' },
-    { value: 'DEVOPS', label: 'DevOps' },
-    { value: 'PM', label: '기획/PM' },
+    { value: 'AI', label: 'AI' },
+    { value: 'FULLSTACK', label: '풀스택' },
+    { value: 'SECURITY', label: '보안' },
+    { value: 'UNKNOWN', label: '미정' },
+    { value: 'OTHER', label: '기타' },
   ];
 
   return (

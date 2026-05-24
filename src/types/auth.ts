@@ -2,14 +2,14 @@
 
 //1. 직군 타입
 export type Position =
-  | 'FRONTEND'
-  | 'BACKEND'
-  | 'DESIGNER'
-  | 'DEVOPS'
-  | 'PM'
-  | 'AI'
-  | 'SECURITY'
-  | 'FULLSTACK';
+  | 'FRONTEND' 
+  | 'BACKEND' 
+  | 'AI' 
+  | 'DESIGNER' 
+  | 'FULLSTACK' 
+  | 'SECURITY' 
+  | 'UNKNOWN' 
+  | 'OTHER';
 
 //================= 요청 타입 =======================================
 
