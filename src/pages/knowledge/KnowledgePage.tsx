@@ -82,7 +82,7 @@ export const KnowledgePage = () => {
   const navigate = useNavigate();
 
   const [filter, setFilter] = useState('전체');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<Category | ''>('');
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -107,8 +107,8 @@ export const KnowledgePage = () => {
         result = await getUnresolvedPosts(pageable);
       } else if (filter === '내가 쓴 글') {
         result = await getMyPosts(pageable);
-      } else if (selectedCategories.length > 0) {
-        result = await getPostsByCategory(selectedCategories[0] as Category, pageable);
+      } else if (selectedCategory) {
+        result = await getPostsByCategory(selectedCategory, pageable);
       } else {
         result = await getPosts(pageable);
       }
@@ -137,14 +137,13 @@ export const KnowledgePage = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, [filter, currentPage, searchKeyword, selectedCategories]);
+  }, [filter, currentPage, searchKeyword, selectedCategory]);
 
-  const toggleCategory = (cat: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-    );
+  const handleCategorySelect = (cat: Category) => {
+    setSelectedCategory(prev => prev === cat ? '' : cat); // 같은 거 누르면 해제
     setCurrentPage(1);
-  };
+    setIsCategoryOpen(false); // 선택하면 드롭다운 닫기
+  }
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -194,65 +193,56 @@ export const KnowledgePage = () => {
                   onClick={() => setIsCategoryOpen(!isCategoryOpen)}
                   className={cn(
                     "px-4 py-2 rounded-xl text-xs font-black transition-all border flex items-center gap-2",
-                    isCategoryOpen || selectedCategories.length > 0
+                    isCategoryOpen || selectedCategory
                       ? "bg-primary/10 text-primary border-primary/30" 
                       : "bg-bg-elevated text-text-muted border-border hover:border-primary/50"
                   )}
                 >
-                  카테고리 {selectedCategories.length > 0 && `(${selectedCategories.length})`}
+                  카테고리 {selectedCategory && `(1)`}
                   <ChevronDown size={14} className={cn("transition-transform", isCategoryOpen && "rotate-180")} />
                 </button>
 
-                <AnimatePresence>
-                  {isCategoryOpen && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setIsCategoryOpen(false)} />
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        className="absolute top-full mt-2 left-0 z-20 w-48 glass-card p-2 shadow-2xl border-border-light bg-bg-surface"
-                      >
-                        <div className="grid grid-cols-1 gap-1">
-                          {categories.map(cat => (
-                            <button
-                              key={cat}
-                              onClick={() => toggleCategory(cat)}
-                              className={cn(
-                                "w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-colors",
-                                selectedCategories.includes(cat)
-                                  ? "bg-primary text-white"
-                                  : "text-text-secondary hover:bg-white/5"
-                              )}
-                            >
-                              {cat}
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
+                  <AnimatePresence>
+                      {isCategoryOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setIsCategoryOpen(false)} />
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="absolute top-full mt-2 left-0 z-20 w-48 glass-card p-2 shadow-2xl border-border-light bg-bg-surface"
+                          >
+                            <div className="grid grid-cols-1 gap-1">
+                              {categories.map(cat => (
+                                <button
+                                  key={cat}
+                                  onClick={() => handleCategorySelect(cat)}
+                                  className={cn(
+                                    "w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-colors",
+                                    selectedCategory === cat
+                                      ? "bg-primary text-white"
+                                      : "text-text-secondary hover:bg-white/5"
+                                  )}
+                                >
+                                  {cat}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
               {/* 선택된 카테고리 태그 */}
-              {selectedCategories.length > 0 && (
+              {selectedCategory && (
                 <div className="flex flex-wrap items-center gap-1.5 ml-2 border-l border-border pl-4">
-                  {selectedCategories.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => toggleCategory(cat)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black border border-primary/20 hover:bg-primary hover:text-white transition-all group"
-                    >
-                      {cat}
-                      <X size={10} className="opacity-60 group-hover:opacity-100" />
-                    </button>
-                  ))}
-                  <button 
-                    onClick={() => { setSelectedCategories([]); setCurrentPage(1); }}
-                    className="p-1 text-text-muted hover:text-danger ml-1"
+                  <button
+                    onClick={() => { setSelectedCategory(''); setCurrentPage(1); }}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black border border-primary/20 hover:bg-primary hover:text-white transition-all group"
                   >
-                    <X size={14} />
+                    {selectedCategory}
+                    <X size={10} className="opacity-60 group-hover:opacity-100" />
                   </button>
                 </div>
               )}
