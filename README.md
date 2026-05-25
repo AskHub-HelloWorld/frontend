@@ -24,19 +24,19 @@
 ## 🚀 로컬 실행 방법
 
 \```bash
-# 1. 저장소 클론
+### 1. 저장소 클론
 git clone https://github.com/your-repo/ask-hub-frontend.git
 
-# 2. 디렉토리 이동
+### 2. 디렉토리 이동
 cd ask-hub-frontend
 
-# 3. 패키지 설치
+### 3. 패키지 설치
 npm install
 
-# 4. 환경 변수 설정
-# 루트에 .env 파일 생성
+### 4. 환경 변수 설정
+* 루트에 .env 파일 생성
 VITE_BASE_URL = https://www.askhub.cloud
-# 5. 개발 서버 실행
+### 5. 개발 서버 실행
 npm run dev
 \```
 
