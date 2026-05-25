@@ -684,7 +684,7 @@ export const ChatPage = () => {
                   </div>
                 )}
 
-                {/* ✅ response 중첩 구조로 수정 */}
+
                 {messages.map((msg) => {
                   const isUserMsg = msg.response.role === 'ASKER';
                   const content = msg.response.content;
@@ -724,7 +724,6 @@ export const ChatPage = () => {
                             {isUserMsg ? (
                               content
                             ) : (
-                              // ✅ AI 메시지만 마크다운 렌더링
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{

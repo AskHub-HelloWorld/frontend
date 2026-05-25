@@ -14,7 +14,6 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// 백엔드 enum ↔ 한글 라벨 매핑
 const positions: { value: Category; label: string }[] = [
   { value: 'FRONTEND', label: '프론트엔드' },
   { value: 'BACKEND', label: '백엔드' },

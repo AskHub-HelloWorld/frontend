@@ -23,7 +23,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   setIsSubmitting(true);
   try {
-    await login(email, password); // ← password 추가됨
+    await login(email, password);
     navigate('/dashboard');
   } catch (err: any) {
     setError(err.response?.data?.message || '로그인 중 오류가 발생했습니다.');
@@ -34,7 +34,6 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden dot-grid">
-      {/* Decorative Glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px] pointer-events-none" />
 

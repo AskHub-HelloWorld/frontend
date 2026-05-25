@@ -238,12 +238,10 @@ export const MyPage = () => {
         </div>
       </section>
 
-      {/* Stats */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard label="작성한 글" value={`${user?.postCount ?? 0}개`} icon={MessageSquare} />
         <StatCard label="남긴 답변" value={`${user?.myCommentCount ?? 0}개`} icon={CheckCircle} />
         <StatCard label="현재 포인트" value={`${user?.point?.toLocaleString() ?? 0}P`} icon={Award} />
-{/* <StatCard label="구매한 상품" value="0개" icon={ShoppingBag} /> */}
       </section>
 
       {/* 내가 쓴 글 */}

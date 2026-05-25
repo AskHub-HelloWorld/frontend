@@ -335,7 +335,6 @@ export const KnowledgePage = () => {
             </div>
           </div>
 
-          {/* 내가 답변한 글 - comment API 구현 후 연동 예정 */}
           <div className="glass-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-bold flex items-center gap-2">

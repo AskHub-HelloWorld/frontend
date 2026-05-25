@@ -50,7 +50,6 @@ export const DashboardPage = () => {
 
   return (
     <div className="space-y-8">
-      {/* Welcome Header */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <motion.h1 
@@ -73,7 +72,6 @@ export const DashboardPage = () => {
         </div>
       </section>
 
-      {/* Quick Actions Grid */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <QuickActionCard 
           title="AI 채팅" 
