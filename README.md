@@ -176,5 +176,44 @@ src/
 
 ## 🎯 트러블슈팅
 
+### 1. CORS 및 인증 예외 처리
+- 문제
+  - 배포 후 이메일 중복 확인 API에서 403 Forbidden 발생
+  - OPTIONS preflight는 성공했지만 실제 XHR 요청 실패
+- 원인
+  - 로그인 전 API임에도 Authorization 검증 적용
+  - Vercel 배포 도메인이 CORS 허용 목록에 없음
+- 해결
+  - 인증 예외 처리 적용
+  - Vercel URL을 CORS 허용 origin에 추가
+### 2. multipart/form-data 팀 생성 오류
+- 문제
+  - 팀 생성할때 파일 미첨부 시 multipartFileList is null
+  - 파일 첨부 시 JSON 파싱 오류 발생
+- 원인
+  - 백엔드 multipart null 체크 누락
+  - JSON body와 multipart/form-data 요청 구조 불일치
+- 해결
+  - FormData 기반 요청 구조로 변경
+  - 파일 null 처리 로직 추가
+### 3. 메시지 저장 DB Constraint 오류
+- 문제
+  - 메시지 전송 시 user_team_id violates not-null constraint 발생
+- 원인
+  - 백엔드에서 UserTeam 매핑 누락
+- 해결
+  - teamId 기반 UserTeam 조회 및 message 엔티티 매핑 수정
+### 4. AI 답변 가독성 문제
+- 문제
+  - 코드블록, 줄바꿈, 리스트 등이 문자열 그대로 출력됨
+- 해결
+  - react-markdown, remark-gfm 적용
+  - Markdown 기반 AI 메시지 렌더링 구현
+### 5. 권한 기반 UI 제어
+- 문제
+  - 일반 사용자도 채팅 내부에서 참여자 초대 버튼 클릭 가능
+- 해결
+  - 방장 여부(captainName) 기준 권한 분기
+  - 비방장 사용자는 버튼 비활성화 처리
 
 <br />
