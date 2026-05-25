@@ -28,6 +28,8 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { ConventionItem } from '../../types/team';
+
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -602,23 +604,23 @@ export const ChatPage = () => {
                 )}
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                {teamDetail?.conventionIds?.length > 0 ? (
-                  teamDetail.conventionIds.map((conventionId: number) => (
-                    <div key={conventionId} className="p-3 rounded-lg border border-border bg-bg-elevated/50 hover:bg-bg-elevated transition-colors group">
+                {teamDetail?.conventionResponses?.length > 0 ? (
+                  teamDetail.conventionResponses.map((convention: ConventionItem) => (
+                    <div key={convention.conventionId} className="p-3 rounded-lg border border-border bg-bg-elevated/50 hover:bg-bg-elevated transition-colors group">
                       <div className="flex items-start justify-between">
                         <div className="p-2 rounded-lg bg-bg-surface border border-border group-hover:border-primary/30 transition-colors">
                           <FileText size={18} className="text-text-secondary group-hover:text-primary" />
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           <button
-                            onClick={() => handleDownloadConvention(conventionId)}
+                            onClick={() => handleDownloadConvention(convention.conventionId)}
                             className="p-1 text-text-muted hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
                           >
                             <Download size={14} />
                           </button>
                           {isHost && (
                             <button
-                              onClick={() => handleDeleteConvention(conventionId)}
+                              onClick={() => handleDeleteConvention(convention.conventionId)}
                               className="p-1 text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-all"
                             >
                               <Trash2 size={14} />
@@ -626,8 +628,9 @@ export const ChatPage = () => {
                           )}
                         </div>
                       </div>
+                      {/* ✅ 파일명 표시 */}
                       <p className="text-[11px] font-medium text-text-primary mt-2 truncate">
-                        파일 #{conventionId}
+                        {convention.conventionName}
                       </p>
                     </div>
                   ))

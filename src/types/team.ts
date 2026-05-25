@@ -6,10 +6,16 @@ export interface CreateTeamData {
   sessionId: number;
 }
 
+//파일 정보
+export interface ConventionItem {
+  conventionId: number;
+  conventionName: string;
+}
+
 // 세션 내부 정보 (팀 상세)
 export interface TeamDetail {
   name: string;
-  conventionIds: number[];
+  conventionResponses: ConventionItem[];
   userNameList: string[];
   captainName: string;
 }
