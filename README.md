@@ -196,7 +196,7 @@ src/
 - 해결
   - FormData 기반 요청 구조로 변경
   - 파일 null 처리 로직 추가
-### 3. 메시지 저장 DB Constraint 오류
+### 3. 메시지 저장 DB  오류
 - 문제
   - 메시지 전송 시 user_team_id violates not-null constraint 발생
 - 원인
@@ -214,6 +214,6 @@ src/
   - 일반 사용자도 채팅 내부에서 참여자 초대 버튼 클릭 가능
 - 해결
   - 방장 여부(captainName) 기준 권한 분기
-  - 비방장 사용자는 버튼 비활성화 처리
+  - 방장 외 사용자는 버튼 비활성화 처리
 
 <br />
